@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ dev, homolog, main ]
+  pull_request:
+    branches: [ dev, homolog, main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Solidariza/requirements.txt
+
+      - name: Django check and migrations
+        working-directory: Solidariza
+        env:
+          DJANGO_SETTINGS_MODULE: project.settings
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+
+      - name: Run tests (if any)
+        working-directory: Solidariza
+        env:
+          DJANGO_SETTINGS_MODULE: project.settings
+        run: |
+          if (Test-Path -Path tests) { python -m pytest -q } else { echo "No tests directory. Skipping." }
+
+

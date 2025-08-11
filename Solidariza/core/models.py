@@ -192,6 +192,20 @@ class StockMovement(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Criado por")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def clean(self) -> None:
+        # Garante que a movimentação pertence à mesma organização do produto
+        if self.product_id and self.organization_id:
+            if self.product.organization_id != self.organization_id:
+                raise ValidationError({
+                    "organization": "A organização da movimentação deve ser a mesma do produto.",
+                    "product": "Produto pertence a outra organização.",
+                })
+
+    def save(self, *args, **kwargs):  # noqa: D401
+        # Valida antes de salvar para evitar inconsistência entre organizações
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
     @staticmethod
     def get_stock(product: Product) -> int:
         totals = StockMovement.objects.filter(product=product).aggregate(
@@ -227,6 +241,30 @@ class Distribution(models.Model):
         verbose_name = "Distribuição"
         verbose_name_plural = "Distribuições"
 
+    def clean(self) -> None:
+        # Garante coerência entre organização e produto
+        if self.product_id and self.organization_id:
+            if self.product.organization_id != self.organization_id:
+                raise ValidationError({
+                    "organization": "A organização da distribuição deve ser a mesma do produto.",
+                    "product": "Produto pertence a outra organização.",
+                })
+        # Opcional: checa vínculo do beneficiário com a organização
+        if self.beneficiary_id and self.organization_id:
+            from .models import OrganizationBeneficiary  # import local para evitar ciclo
+            linked = OrganizationBeneficiary.objects.filter(
+                organization_id=self.organization_id, beneficiary_id=self.beneficiary_id
+            ).exists()
+            if not linked:
+                raise ValidationError({
+                    "beneficiary": "Beneficiário não está vinculado a esta organização.",
+                })
+
+    def save(self, *args, **kwargs):  # noqa: D401
+        # Valida antes de salvar para evitar inconsistência entre organizações
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
 
 class StockError(Exception):
     pass
@@ -239,6 +277,13 @@ class UniqueMonthlyDeliveryError(Exception):
 @transaction.atomic
 def deliver_basket(*, organization: Organization, beneficiary: Beneficiary, product: Product, period_month: date, user) -> Distribution:
     month_start = period_month.replace(day=1)
+
+    # Coerência entre organização e produto/beneficiário
+    if product.organization_id != organization.id:
+        raise ValidationError("Produto pertence a outra organização.")
+    from .models import OrganizationBeneficiary as _OrgBen  # evitar import circular no topo
+    if not _OrgBen.objects.filter(organization=organization, beneficiary=beneficiary).exists():
+        raise ValidationError("Beneficiário não está vinculado a esta organização.")
 
     # Regra por produto na rede: não permitir repetir o MESMO produto dentro de 30 dias
     from datetime import timedelta
