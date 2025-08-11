@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="title">Editar Colaborador</h1>
+<form method="post" class="box">
+  {% csrf_token %}
+  <div class="columns">
+    <div class="column">
+      <div class="field"><label class="label">Usuário</label><div class="control"><input class="input" value="{{ user_obj.username }}" disabled></div></div>
+    </div>
+    <div class="column">
+      <div class="field"><label class="label">E-mail</label><div class="control"><input class="input" value="{{ user_obj.email }}" disabled></div></div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column">
+      <div class="field"><label class="label">Organização</label><div class="control"><div class="select is-fullwidth"><select name="organization_id" required>
+        {% for o in orgs %}
+          <option value="{{ o.id }}" {% if o.id == user_obj.organization_id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select></div></div></div>
+    </div>
+    <div class="column">
+      <div class="field"><label class="label">Papel</label><div class="control"><div class="select is-fullwidth"><select name="role">
+        <option value="ADMIN" {% if user_obj.role == 'ADMIN' %}selected{% endif %}>ADMIN</option>
+        <option value="MANAGER" {% if user_obj.role == 'MANAGER' %}selected{% endif %}>MANAGER</option>
+        <option value="USER" {% if user_obj.role == 'USER' %}selected{% endif %}>USER</option>
+      </select></div></div></div>
+    </div>
+  </div>
+  <button class="button is-primary" type="submit">Salvar</button>
+  <a class="button" href="/collaborators/">Cancelar</a>
+</form>
+{% endblock %}
+

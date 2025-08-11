@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="title">Novo Beneficiário</h1>
+<form method="post">
+  {% csrf_token %}
+  <div class="field">
+    <label class="label">Nome completo</label>
+    <div class="control"><input class="input" type="text" name="name" required></div>
+  </div>
+  <div class="field">
+    <label class="label">Identificador (CPF ou outro)</label>
+    <div class="control"><input class="input" type="text" name="identifier" id="identifier" required></div>
+    <p class="help is-danger" id="identifier-help" style="display:none;"></p>
+  </div>
+  <div class="field">
+    <label class="label">Data de nascimento</label>
+    <div class="control"><input class="input" type="date" name="birth_date" id="birth_date"></div>
+  </div>
+
+  <div class="field">
+    <label class="checkbox">
+      <input type="checkbox" name="is_family_responsible" id="is_family_responsible">
+      É o responsável da família?
+    </label>
+    <p class="help">Se marcado, criaremos automaticamente a família com este beneficiário como titular.</p>
+  </div>
+  <div class="field" id="holder_field" style="display:none;">
+    <label class="label">Titular/Responsável (obrigatório para menor)</label>
+    <div class="control">
+      <div class="select is-fullwidth">
+        <select name="holder_id" id="holder_id">
+          <option value="">Selecione...</option>
+          {% for b in beneficiaries %}
+            <option value="{{ b.id }}">{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-4">
+      <div class="field">
+        <label class="label">CEP</label>
+        <div class="control"><input class="input" type="text" name="cep" id="cep"></div>
+      </div>
+    </div>
+    <div class="column is-8">
+      <div class="field">
+        <label class="label">Endereço</label>
+        <div class="control"><input class="input" type="text" name="address" id="address"></div>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-3">
+      <div class="field">
+        <label class="label">Número</label>
+        <div class="control"><input class="input" type="text" name="address_number"></div>
+      </div>
+    </div>
+    <div class="column is-9">
+      <div class="field">
+        <label class="label">Complemento</label>
+        <div class="control"><input class="input" type="text" name="address_complement"></div>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-4">
+      <div class="field">
+        <label class="label">Bairro</label>
+        <div class="control"><input class="input" type="text" name="district" id="district"></div>
+      </div>
+    </div>
+    <div class="column is-6">
+      <div class="field">
+        <label class="label">Cidade</label>
+        <div class="control"><input class="input" type="text" name="city" id="city"></div>
+      </div>
+    </div>
+    <div class="column is-2">
+      <div class="field">
+        <label class="label">UF</label>
+        <div class="control"><input class="input" type="text" name="state" id="state" maxlength="2"></div>
+      </div>
+    </div>
+  </div>
+  <button class="button is-primary" type="submit">Salvar</button>
+  <a class="button" href="/beneficiaries/">Cancelar</a>
+  </form>
+
+<script>
+function onlyDigits(v){ return (v||'').replace(/\D+/g,''); }
+function maskCPF(v){
+  const d = onlyDigits(v).slice(0,11);
+  let out = d;
+  if(d.length>9) out = d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+  else if(d.length>6) out = d.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+  else if(d.length>3) out = d.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+  return out;
+}
+document.getElementById('identifier').addEventListener('input', (e)=>{
+  e.target.value = maskCPF(e.target.value);
+});
+
+async function checkNetwork(identifier){
+  const period = new Date();
+  const firstDay = new Date(period.getFullYear(), period.getMonth(), 1).toISOString().slice(0,10);
+  const url = `/api/distributions/check-by-identifier/?identifier=${encodeURIComponent(identifier)}&period_month=${firstDay}`;
+  const r = await fetch(url);
+  if(!r.ok) return null;
+  return r.json();
+}
+
+document.getElementById('identifier').addEventListener('blur', async (e)=>{
+  const id = e.target.value;
+  const help = document.getElementById('identifier-help');
+  help.style.display = 'none';
+  const res = await checkNetwork(id);
+  if(res && res.exists){
+    help.textContent = 'Beneficiário já recebeu cesta este mês na rede.';
+    help.style.display = 'block';
+  }
+});
+
+function isMinor(dateStr){
+  if(!dateStr) return false;
+  const d = new Date(dateStr);
+  if(Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  let age = now.getFullYear()-d.getFullYear();
+  const m = now.getMonth()-d.getMonth();
+  if(m<0 || (m===0 && now.getDate()<d.getDate())) age--;
+  return age < 18;
+}
+const birth = document.getElementById('birth_date');
+const holderField = document.getElementById('holder_field');
+birth.addEventListener('change', ()=>{
+  holderField.style.display = isMinor(birth.value) ? 'block' : 'none';
+});
+// initialize
+holderField.style.display = isMinor(birth.value) ? 'block' : 'none';
+
+async function buscaCEP(cep) {
+  const c = cep.replace(/\D/g, '');
+  if (c.length !== 8) return;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+    const d = await r.json();
+    if (d && !d.erro) {
+      document.getElementById('address').value = d.logradouro || '';
+      document.getElementById('district').value = d.bairro || '';
+      document.getElementById('city').value = d.localidade || '';
+      document.getElementById('state').value = d.uf || '';
+    }
+  } catch (e) {}
+}
+document.getElementById('cep').addEventListener('blur', (e) => buscaCEP(e.target.value));
+</script>
+{% endblock %}
+
+

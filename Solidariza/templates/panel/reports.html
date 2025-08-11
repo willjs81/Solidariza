@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">Relatórios</h1>
+    
+    <!-- Filtros Avançados -->
+    <div class="box">
+        <h2 class="subtitle">Filtros Avançados</h2>
+        <form method="get">
+            <div class="columns">
+                <div class="column">
+                    <label class="label">Tipo de Filtro</label>
+                    <div class="select is-fullwidth">
+                        <select name="filter_type">
+                            <option value="all" {% if filter_type == "all" %}selected{% endif %}>Todos</option>
+                            <option value="org" {% if filter_type == "org" %}selected{% endif %}>Minha ONG</option>
+                            <option value="cpf" {% if filter_type == "cpf" %}selected{% endif %}>Por CPF</option>
+                            <option value="name" {% if filter_type == "name" %}selected{% endif %}>Por Nome</option>
+                            <option value="id" {% if filter_type == "id" %}selected{% endif %}>Por ID</option>
+                            <option value="events" {% if filter_type == "events" %}selected{% endif %}>Por Evento (Nome)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">Valor do Filtro</label>
+                    <input class="input" type="text" name="filter_value" placeholder="Digite o valor..." value="{{ filter_value }}">
+                </div>
+                <div class="column">
+                    <label class="label">Organização</label>
+                    <div class="select is-fullwidth">
+                        <select name="organization">
+                            <option value="">Todas as ONGs</option>
+                            {% for org in organizations %}
+                            <option value="{{ org.id }}" {% if organization_filter == org.id|stringformat:"s" %}selected{% endif %}>
+                                {{ org.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">Evento Específico</label>
+                    <div class="select is-fullwidth">
+                        <select name="event">
+                            <option value="">Todos os eventos</option>
+                            {% for event in events %}
+                            <option value="{{ event.id }}" {% if event_filter == event.id|stringformat:"s" %}selected{% endif %}>
+                                {{ event.name|proper_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <label class="label">Data início</label>
+                    <input class="input" type="date" name="start" value="{{ start }}">
+                </div>
+                <div class="column">
+                    <label class="label">Data fim</label>
+                    <input class="input" type="date" name="end" value="{{ end }}">
+                </div>
+                <div class="column">
+                    <label class="label">&nbsp;</label>
+                    <button class="button is-primary" type="submit">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Downloads CSV -->
+    <div class="box">
+        <h2 class="subtitle">Downloads CSV</h2>
+        <div class="buttons">
+            <a class="button is-link" href="?download=distributions_csv&{{ request.GET.urlencode }}">
+                <i class="fas fa-download"></i> Distribuições
+            </a>
+            <a class="button is-info" href="?download=families_csv">
+                <i class="fas fa-download"></i> Famílias
+            </a>
+            <a class="button is-success" href="?download=minors_csv">
+                <i class="fas fa-download"></i> Menores
+            </a>
+            <a class="button is-warning" href="?download=events_csv">
+                <i class="fas fa-download"></i> Eventos/Presenças
+            </a>
+        </div>
+    </div>
+
+    <!-- Resultados das Distribuições -->
+    <div class="box">
+        <h2 class="subtitle">Distribuições ({{ distributions|length }} resultados)</h2>
+        
+        {% if distributions %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Beneficiário</th>
+                    <th>CPF/ID</th>
+                    <th>Produto</th>
+                    <th>Mês</th>
+                    <th>Organização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in distributions %}
+                <tr>
+                    <td>{{ d.delivered_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <strong>{{ d.beneficiary.name|proper_name }}</strong>
+                    </td>
+                    <td>{{ d.beneficiary.identifier }}</td>
+                    <td>{{ d.product.name }}</td>
+                    <td>{{ d.period_month|date:"m/Y" }}</td>
+                    <td>
+                        <span class="tag is-link is-light">{{ d.organization.name }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma distribuição encontrada com os filtros aplicados.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Famílias (Resumo) -->
+    <div class="box">
+        <h2 class="subtitle">Famílias Cadastradas ({{ families|length }} resultados)</h2>
+        
+        {% if families %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Família</th>
+                    <th>Membros</th>
+                    <th>Titular/Responsável</th>
+                    <th>Organização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in families %}
+                <tr>
+                    <td>
+                        <strong>{{ f.name|proper_name|default:"Família #"|add:f.id|stringformat:"s" }}</strong>
+                    </td>
+                    <td>
+                        {% for m in f.members.all %}
+                            {{ m.beneficiary.name|proper_name }}{% if not forloop.last %}, {% endif %}
+                        {% empty %}
+                            <em>(sem membros)</em>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for m in f.members.all %}
+                            {% if m.is_guardian %}
+                                <span class="tag is-warning">{{ m.beneficiary.name|proper_name }}</span>
+                            {% endif %}
+                        {% empty %}
+                            -
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% with orgs=f|family_org_names %}
+                          {% if orgs %}<span class="tag is-link is-light">{{ orgs }}</span>{% else %}-{% endif %}
+                        {% endwith %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma família encontrada.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% load static %}
+{% load panel_extras %}
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Solidariza</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="{% static 'panel.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- Fallback para Font Awesome -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  </head>
+  <body>
+    {% if user.is_authenticated %}
+      <div class="sj-layout">
+        <aside class="sj-sidebar">
+          <div class="sj-brand"><a href="{% url 'panel:dashboard' %}">Solidariza</a></div>
+          <div class="sj-user">
+            {{ user.get_full_name|default:user.username }}
+            {% with org_name=active_organization_name %}
+              {% if org_name %}
+                <div class="has-text-grey-light" style="font-size: 0.9em;">{{ org_name }}</div>
+              {% endif %}
+            {% endwith %}
+            {% if user.is_superuser %}
+            {% list_all_organizations as organizations_all %}
+            <form method="post" action="{% url 'panel:set_active_organization' %}" style="margin-top:8px;">
+              {% csrf_token %}
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <div class="select is-small is-fullwidth">
+                    <select name="organization_id">
+                      <option value="">Toda a Rede</option>
+                      {% for o in organizations_all %}
+                        <option value="{{ o.id }}" {% if request.session.active_organization_id == o.id %}selected{% endif %}>{{ o.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="control">
+                  <button class="button is-small is-link" type="submit">Trocar</button>
+                </div>
+              </div>
+            </form>
+            {% endif %}
+          </div>
+          <nav class="sj-menu">
+            <a class="sj-item" href="{% url 'panel:dashboard' %}">Painel</a>
+            <a class="sj-item" href="{% url 'panel:beneficiary_list' %}">Beneficiários</a>
+            {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+            <a class="sj-item" href="{% url 'panel:distribution_page' %}">Distribuições</a>
+            {% endif %}
+            <a class="sj-item" href="{% url 'panel:family_list' %}">Famílias</a>
+            <a class="sj-item" href="{% url 'panel:events_list' %}">Marcar presenças</a>
+            <a class="sj-item" href="{% url 'panel:network_distributions' %}">Distribuições da Rede</a>
+            {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+            <a class="sj-item" href="{% url 'panel:stock_page' %}">Estoque</a>
+            {% endif %}
+            <a class="sj-item" href="{% url 'panel:organization_page' %}">Minha Organização</a>
+            {% if user.is_superuser %}
+            <a class="sj-item" href="{% url 'panel:organization_list' %}">Organizações</a>
+            {% endif %}
+            {% if user.is_superuser or user.role == 'ADMIN' %}
+            <a class="sj-item" href="{% url 'panel:collaborators_page' %}">Colaboradores</a>
+            {% endif %}
+            <a class="sj-item" href="{% url 'panel:reports_page' %}">Relatórios</a>
+            <form class="sj-item" method="post" action="/accounts/logout/">{% csrf_token %}
+              <button type="submit" class="sj-link">Sair</button>
+            </form>
+          </nav>
+        </aside>
+        <main class="sj-content">
+    {% else %}
+        <div class="unauth-wrapper">
+    {% endif %}
+
+    {% for message in messages %}
+      <div class="notification is-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    {% block content %}{% endblock %}
+
+    {% if user.is_authenticated %}
+        </main>
+      </div>
+    {% else %}
+        </div>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <script>
+      (function(){
+        try {
+          var remaining = {{ request.session.get_expiry_age|default:0 }}; // segundos
+          var warnAt = 60; // avisar 60s antes
+          if (!remaining || remaining <= 0) return;
+
+          function scheduleTimers(seconds){
+            var warnDelayMs = Math.max(0, (seconds - warnAt) * 1000);
+            var logoutDelayMs = (seconds * 1000) + 1000; // folga de 1s
+
+            setTimeout(showWarning, warnDelayMs);
+            setTimeout(function(){
+              window.location.href = '/accounts/login/';
+            }, logoutDelayMs);
+          }
+
+          function showWarning(){
+            var box = document.createElement('div');
+            box.id = 'session-warning';
+            box.className = 'notification is-warning';
+            box.style.position = 'fixed';
+            box.style.right = '16px';
+            box.style.bottom = '16px';
+            box.style.zIndex = '9999';
+            box.innerHTML = 'Sessão expirando em <strong><span id="sw-counter">'+warnAt+'</span>s</strong>.'+
+              ' <button id="sw-continue" class="button is-small is-link">Continuar sessão</button>';
+            document.body.appendChild(box);
+
+            var left = warnAt;
+            var counterEl = document.getElementById('sw-counter');
+            var iv = setInterval(function(){
+              left -= 1;
+              if (left <= 0) { clearInterval(iv); left = 0; }
+              if (counterEl) counterEl.textContent = left;
+            }, 1000);
+
+            var btn = document.getElementById('sw-continue');
+            if (btn){
+              btn.addEventListener('click', function(){
+                // Faz um ping para renovar a sessão e recarrega a página
+                fetch(window.location.pathname, {cache: 'no-store'}).finally(function(){
+                  window.location.reload();
+                });
+              });
+            }
+          }
+
+          scheduleTimers(remaining);
+        } catch (e) { /* silencioso */ }
+      })();
+    </script>
+    {% endif %}
+  </body>
+  </html>
+
+

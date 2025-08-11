@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+{% block content %}
+<h1 class="title">Presenças - {{ event.name }} ({{ event.date }})</h1>
+{% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+<form class="box" method="post">
+  {% csrf_token %}
+  <table class="table is-fullwidth is-striped">
+    <thead><tr><th>Beneficiário</th><th>Presente?</th></tr></thead>
+    <tbody>
+      {% for b in beneficiaries %}
+        <tr>
+          <td>{{ b.name }}</td>
+          <td><input type="checkbox" name="b_{{ b.id }}" {% if existing|get_item:b.id %}checked{% endif %}></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button class="button is-primary" type="submit">Salvar presenças</button>
+  <a class="button" href="/events/">Voltar</a>
+</form>
+{% else %}
+<div class="box">
+  <p>Você pode visualizar a lista de participantes. Para registrar presenças, procure um administrador ou gerente.</p>
+  <a class="button" href="/events/">Voltar</a>
+</div>
+{% endif %}
+{% endblock %}
+

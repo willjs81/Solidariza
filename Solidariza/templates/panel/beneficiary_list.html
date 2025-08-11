@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Beneficiários{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                <i class="fas fa-heart"></i> Beneficiários
+            </h1>
+        </div>
+        {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+        <div class="level-right">
+            <a class="button is-primary" href="{% url 'panel:beneficiary_create' %}">
+                <i class="fas fa-plus"></i> Novo
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Estatísticas dos Beneficiários -->
+    <div class="columns is-multiline">
+        <div class="column is-3">
+            <div class="box has-text-centered">
+                <p class="heading">Total de Assistidos</p>
+                <p class="title is-3 has-text-primary">{{ total_beneficiaries }}</p>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div class="box has-text-centered">
+                <p class="heading">Ativos</p>
+                <p class="title is-3 has-text-success">{{ active_beneficiaries }}</p>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div class="box has-text-centered">
+                <p class="heading">Inativos</p>
+                <p class="title is-3 has-text-danger">{{ inactive_beneficiaries }}</p>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div class="box has-text-centered">
+                <p class="heading">Distribuições (30d)</p>
+                <p class="title is-3 has-text-info">{{ recent_distributions }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Detalhadas -->
+    <div class="columns is-multiline">
+        <!-- Faixa Etária -->
+        <div class="column is-4">
+            <div class="box">
+                <h3 class="subtitle">
+                    <i class="fas fa-birthday-cake"></i> Faixa Etária
+                </h3>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-warning">
+                                <i class="fas fa-child"></i> Menores (&lt;18)
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-warning">{{ minors }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-success">
+                                <i class="fas fa-user"></i> Adultos (18-59)
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-success">{{ adults }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-info">
+                                <i class="fas fa-user-friends"></i> Idosos (60+)
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-info">{{ seniors }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-light">
+                                <i class="fas fa-question"></i> Sem data nasc.
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-light">{{ without_birth_date }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Identificação -->
+        <div class="column is-4">
+            <div class="box">
+                <h3 class="subtitle">
+                    <i class="fas fa-id-card"></i> Identificação
+                </h3>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-primary">
+                                <i class="fas fa-fingerprint"></i> Com identificador
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-primary">{{ with_identifier }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-info">
+                                <i class="fas fa-file-alt"></i> Só documento
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-info">{{ with_document }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Sem identificação
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-danger">{{ without_identification }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estrutura Familiar -->
+        <div class="column is-4">
+            <div class="box">
+                <h3 class="subtitle">
+                    <i class="fas fa-users"></i> Estrutura Familiar
+                </h3>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-success">
+                                <i class="fas fa-home"></i> Em famílias
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-success">{{ in_families }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-info">
+                                <i class="fas fa-shield-alt"></i> Responsáveis
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-info">{{ guardians }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="level">
+                        <div class="level-left">
+                            <span class="tag is-warning">
+                                <i class="fas fa-user-minus"></i> Individuais
+                            </span>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-large is-warning">{{ not_in_families }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if without_identification > 0 %}
+    <div class="notification is-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Atenção!</strong> {{ without_identification }} beneficiário{{ without_identification|pluralize:"s" }} sem identificação adequada.
+        <a href="#" class="button is-warning is-small ml-2">
+            <i class="fas fa-filter"></i> Filtrar
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Lista de Beneficiários -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-list"></i> Lista de Beneficiários
+        </h2>
+        
+        {% if beneficiaries %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Identificador</th>
+                        <th>Idade</th>
+                        <th>Família</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in beneficiaries %}
+                    <tr>
+                        <td>
+                            <span class="tag is-info is-light">ID: #{{ b.id }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ b.name }}</strong>
+                        </td>
+                        <td>
+                            <span class="tag is-{{ b|get_identification_type }}">
+                                {{ b|get_identification }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if b.birth_date %}
+                                <span class="tag {% if b.birth_date|calculate_age < 18 %}is-warning{% elif b.birth_date|calculate_age >= 60 %}is-info{% else %}is-success{% endif %}">
+                                    {{ b.birth_date|calculate_age }} anos
+                                </span>
+                            {% else %}
+                                <span class="tag is-light">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.family_links.exists %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-home"></i> Família
+                                </span>
+                            {% else %}
+                                <span class="tag is-warning">
+                                    <i class="fas fa-user"></i> Individual
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.active %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-check-circle"></i> Ativo
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-times-circle"></i> Inativo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-light" href="{% url 'panel:beneficiary_detail' b.id %}">
+                                <i class="fas fa-eye"></i> Resumo
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum beneficiário cadastrado ainda.
+            {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+            <div class="mt-2">
+                <a href="{% url 'panel:beneficiary_create' %}" class="button is-primary is-small">
+                    <i class="fas fa-plus"></i> Cadastrar Primeiro Beneficiário
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

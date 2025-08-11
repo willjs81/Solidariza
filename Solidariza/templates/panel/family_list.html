@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Famílias{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                <i class="fas fa-users"></i> Famílias
+            </h1>
+        </div>
+        {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+        <div class="level-right">
+            <a class="button is-primary" href="{% url 'panel:family_create' %}">
+                <i class="fas fa-plus"></i> Nova família
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Estatísticas das Famílias -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Total de Famílias</p>
+                <p class="title is-3 has-text-primary">{{ total_families }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Total de Membros</p>
+                <p class="title is-3 has-text-info">{{ total_members }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Média por Família</p>
+                <p class="title is-3 has-text-success">{{ avg_members_per_family }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Familias com Menores</p>
+                <p class="title is-3 has-text-warning">{{ families_with_minors }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Famílias -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-list"></i> Lista de Familias
+        </h2>
+        
+        {% if family_details %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped family-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome da Familia</th>
+                        <th>Organização</th>
+                        <th>Membros</th>
+                        <th>Adultos</th>
+                        <th>Menores</th>
+                        <th>Responsavel</th>
+                        <th>Status</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in family_details %}
+                    <tr>
+                        <td>
+                            <span class="tag is-info is-light">ID: #{{ detail.family.id }}</span>
+                        </td>
+                        <td>
+                             <strong class="family-name">{{ detail.family.name|proper_name|default:"(Sem nome)" }}</strong>
+                        </td>
+                        <td>
+                            <span class="tag is-light">{{ detail.family|family_org_names|default:"-" }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-primary">{{ detail.member_count }} membro{{ detail.member_count|pluralize:"s" }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-success">{{ detail.adults_count }} adulto{{ detail.adults_count|pluralize:"s" }}</span>
+                        </td>
+                        <td>
+                            {% if detail.minors_count > 0 %}
+                                <span class="tag is-warning">{{ detail.minors_count }} menor{{ detail.minors_count|pluralize:"es" }}</span>
+                            {% else %}
+                                <span class="tag is-light">0 menores</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if detail.has_guardian %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-check-circle"></i> Sim
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-times-circle"></i> Não
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if detail.has_minor and not detail.has_guardian %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Atenção
+                                </span>
+                            {% elif detail.has_guardian %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-check"></i> Completa
+                                </span>
+                            {% else %}
+                                <span class="tag is-info">
+                                    <i class="fas fa-info-circle"></i> Normal
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="buttons are-small">
+                                <button class="button is-info is-small" onclick="toggleMembers({{ detail.family.id }})">
+                                    <i class="fas fa-eye"></i> Ver Membros
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Linha de Detalhes dos Membros (oculta por padrão) -->
+                    <tr id="members-{{ detail.family.id }}" style="display: none;" class="has-background-light">
+                        <td></td>
+                        <td colspan="8">
+                            <div class="content family-members-content">
+                                <h6 class="title is-6">
+                                    <i class="fas fa-users"></i> Membros da Família {{ detail.family.name|default:"#"|add:detail.family.id|stringformat:"s" }}
+                                </h6>
+                                {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+                                {% with gid=detail.members|guardian_id %}
+                                <div style="margin-bottom: .75rem;">
+                                    <a class="button is-small is-link" href="{% url 'panel:family_create' %}?holder_id={{ gid }}">
+                                        <i class="fas fa-user-plus"></i>&nbsp;Adicionar dependente
+                                    </a>
+                                </div>
+                                {% endwith %}
+                                {% endif %}
+                                <div class="columns is-multiline is-variable is-4 family-members">
+                                    {% for member in detail.members %}
+                                    <div class="column is-half">
+                                        <div class="box is-small">
+                                            <div class="media">
+                                                <div class="media-left">
+                                                    <figure class="image is-32x32">
+                                                        {% if member.is_guardian %}
+                                                            <i class="fas fa-user-shield has-text-success fa-2x"></i>
+                                                        {% elif member.beneficiary.birth_date|calculate_age < 18 %}
+                                                            <i class="fas fa-child has-text-warning fa-2x"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-user has-text-info fa-2x"></i>
+                                                        {% endif %}
+                                                    </figure>
+                                                </div>
+                                                <div class="media-content">
+                                                     <p class="title is-6">{{ member.beneficiary.name|proper_name }}</p>
+                                                    <p class="subtitle is-7">
+                                                        <span class="tag is-{{ member.beneficiary|get_identification_type }}">
+                                                            {{ member.beneficiary|get_identification }}
+                                                        </span>
+                                                        {% if member.beneficiary.birth_date %}
+                                                            <span class="tag is-light">
+                                                                {{ member.beneficiary.birth_date|calculate_age }} anos
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if member.is_guardian %}
+                                                            <span class="tag is-success">
+                                                                <i class="fas fa-shield-alt"></i> Responsável
+                                                            </span>
+                                                        {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma família cadastrada ainda.
+            {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+            <div class="mt-2">
+                <a href="{% url 'panel:family_create' %}" class="button is-primary is-small">
+                    <i class="fas fa-plus"></i> Cadastrar Primeira Família
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Resumo de Alertas -->
+    {% if families_with_minors > families_with_guardians %}
+    <div class="notification is-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Atenção!</strong> 
+        {{ families_with_minors|add:families_with_guardians|add:"-" }} família{{ families_with_minors|add:families_with_guardians|add:"-"|pluralize:"s" }} 
+        com menores sem responsável definido. Verifique as configurações familiares.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleMembers(familyId) {
+    const membersRow = document.getElementById('members-' + familyId);
+    if (membersRow.style.display === 'none') {
+        membersRow.style.display = 'table-row';
+    } else {
+        membersRow.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Organizações{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                <i class="fas fa-building"></i> Gerenciar Organizações
+            </h1>
+        </div>
+        <div class="level-right">
+            <a href="{% url 'panel:organization_create' %}" class="button is-success">
+                <i class="fas fa-plus"></i> Nova Organização
+            </a>
+        </div>
+    </div>
+
+    <div class="notification is-info is-light">
+        <i class="fas fa-info-circle"></i>
+        <strong>Administrador Global:</strong> Aqui você pode criar e gerenciar todas as organizações da rede.
+    </div>
+
+    {% if orgs %}
+    <div class="box">
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Nome da Organização</th>
+                    <th>Colaboradores</th>
+                    <th>Assistidos</th>
+                    <th>Data de Criação</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in orgs %}
+                <tr>
+                    <td>
+                        <strong>{{ org.name }}</strong>
+                    </td>
+                    <td>
+                        <span class="tag is-primary">
+                            {{ org.user_set.count }} colaborador{{ org.user_set.count|pluralize:"es" }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="tag is-info">
+                            {{ org.beneficiaries.count }} assistido{{ org.beneficiaries.count|pluralize:"s" }}
+                        </span>
+                    </td>
+                    <td>{{ org.created_at|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if org.is_active %}
+                          <span class="tag is-success is-light">Ativa</span>
+                        {% else %}
+                          <span class="tag is-warning is-light">Desativada</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="buttons">
+                            <a href="{% url 'panel:organization_detail' org.pk %}" class="button is-small is-primary">
+                                <i class="fas fa-eye"></i> Gerenciar
+                            </a>
+                            {% if org.is_active %}
+                            <a href="{% url 'panel:organization_toggle_active' org.pk %}" class="button is-small is-warning">
+                                <i class="fas fa-ban"></i> Desativar
+                            </a>
+                            {% else %}
+                            <a href="{% url 'panel:organization_toggle_active' org.pk %}" class="button is-small is-success">
+                                <i class="fas fa-check"></i> Ativar
+                            </a>
+                            {% endif %}
+                                 <form method="post" action="{% url 'panel:organization_delete' org.pk %}" style="display:inline;" onsubmit="return confirm('Excluir {{ org.name }}?');">
+                                     {% csrf_token %}
+                                     <button class="button is-small is-danger">
+                                         <i class="fas fa-trash"></i> Excluir
+                                     </button>
+                                 </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="box">
+        <div class="notification is-warning is-light">
+            <i class="fas fa-exclamation-triangle"></i>
+            Nenhuma organização cadastrada ainda.
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

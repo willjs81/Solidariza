@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Organização{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1 class="title"><i class="fas fa-trash"></i> Excluir Organização</h1>
+  <div class="notification is-warning is-light">
+    Tem certeza que deseja excluir a organização <strong>{{ org.name }}</strong>? Esta ação é irreversível e removerá vínculos de colaboradores, produtos, eventos e relacionamentos associados.
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <a href="{% url 'panel:organization_detail' org.pk %}" class="button">Cancelar</a>
+    <button class="button is-danger" type="submit">Confirmar Exclusão</button>
+  </form>
+</div>
+{% endblock %}
+
+

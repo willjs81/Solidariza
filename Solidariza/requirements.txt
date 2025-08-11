@@ -1,0 +1,9 @@
+django==5.0.7
+djangorestframework==3.15.2
+dj-database-url==2.2.0
+python-dotenv==1.0.1
+psycopg[binary]==3.2.9
+gunicorn==22.0.0
+whitenoise==6.7.0
+django-jazzmin==3.0.0
+

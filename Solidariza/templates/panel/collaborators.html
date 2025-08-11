@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="level">
+  <div class="level-left"><h1 class="title">Colaboradores</h1></div>
+  <div class="level-right"><a class="button is-primary" href="/collaborators/new/">Novo</a></div>
+  </div>
+<table class="table is-fullwidth is-striped">
+  <thead><tr><th>Usuário</th><th>E-mail</th><th>Papel</th></tr></thead>
+  <tbody>
+  {% for c in collaborators %}
+    <tr><td><a href="/collaborators/{{ c.id }}/">{{ c.username }}</a></td><td>{{ c.email }}</td><td>{{ c.role }}</td></tr>
+  {% empty %}
+    <tr><td colspan="3">Sem colaboradores</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

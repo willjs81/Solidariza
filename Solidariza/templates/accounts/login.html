@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<section class="login-hero image-bg">
+  <style>
+    /* Fundo com imagem sugerida + overlay suave */
+    .login-hero.image-bg{
+      position: relative;
+      min-height: 100vh;
+      background-image: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.25)), url('{% static "img/login-bg.jpeg" %}');
+      background-size: cover;
+      background-position: center;
+    }
+    .login-title-hero{
+      position: absolute;
+      top: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: #fff;
+      text-shadow: 0 4px 24px rgba(0,0,0,.35);
+      font-size: clamp(2rem, 8vw, 5rem);
+      user-select: none;
+    }
+  </style>
+  <div class="login-center">
+    <div class="login-card">
+      <div class="has-text-centered" style="margin-bottom:12px;">
+        <h1 class="title is-4" style="margin:0 0 6px 0; line-height:1.25;">Solidariza</h1>
+        <p class="subtitle is-6" style="color:#6b7280; margin:0; line-height:1.35;">Bem-vindo! Faça login para acessar o painel.</p>
+      </div>
+      <div class="login-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <form method="post" class="login-form">
+        {% csrf_token %}
+        <div class="login-input">
+          <i class="fas fa-user"></i>
+          <input type="text" name="username" placeholder="Usuário" required>
+        </div>
+        <div class="login-input">
+          <i class="fas fa-lock"></i>
+          <input type="password" name="password" placeholder="Senha" required>
+        </div>
+                  <div class="login-input">
+            <i class="fas fa-building"></i>
+            <select name="organization" style="background: #ffffff; border: none; color: #333; width: 100%; padding-left: 40px;">
+              <option value="" style="color: #333;">Selecione a organização</option>
+              {% for org in organizations %}
+              <option value="{{ org.id }}" style="color: #333;">{{ org.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        <div class="login-meta">
+          <label class="checkbox is-size-7"><input type="checkbox" name="remember"> Lembrar-me</label>
+          <a class="is-size-7" href="/accounts/password_reset/">Esqueceu a senha?</a>
+        </div>
+        <button type="submit" class="login-button">LOGIN</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+

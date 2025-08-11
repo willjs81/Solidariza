@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}{{ beneficiary.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                {{ beneficiary.name }}
+                {% if not is_own_beneficiary %}
+                    <span class="tag is-warning">Outra ONG</span>
+                {% endif %}
+            </h1>
+        </div>
+        <div class="level-right">
+            {% if can_edit %}
+              {% if user.is_superuser or user.role == 'ADMIN' or user.role == 'MANAGER' %}
+              <a href="{% url 'panel:beneficiary_edit' beneficiary.id %}" class="button is-primary mr-2">
+                  <i class="fas fa-edit"></i> Editar
+              </a>
+              {% endif %}
+            {% endif %}
+            <a href="{% url 'panel:beneficiary_list' %}" class="button">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+    
+    {% if not is_own_beneficiary and not user.is_superuser %}
+    <div class="notification is-warning is-light">
+        <i class="fas fa-exclamation-triangle"></i> 
+        <strong>Atenção:</strong> Este assistido pertence a outra organização. Você pode visualizar os dados para controle da rede, mas não pode fazer alterações.
+    </div>
+    {% endif %}
+
+    <div class="box">
+        <div class="columns">
+            <div class="column">
+                <p><strong>Identificador:</strong> {{ beneficiary.identifier }}</p>
+            </div>
+            <div class="column">
+                <p><strong>Nascimento:</strong> 
+                {% if beneficiary.birth_date %}
+                    {{ beneficiary.birth_date }} ({{ beneficiary.birth_date|calculate_age }} anos)
+                {% else %}
+                    -
+                {% endif %}
+                </p>
+            </div>
+        </div>
+        <p><strong>Endereço:</strong> {{ beneficiary.address }} {{ beneficiary.address_number }} - {{ beneficiary.district }} - {{ beneficiary.city }}/{{ beneficiary.state }}</p>
+        <p><strong>Família:</strong> {{ family.name|default:"(não vinculado)" }}</p>
+    </div>
+
+    <div class="box">
+        <h2 class="title is-5">Histórico de Distribuições (Rede)</h2>
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> 
+            Este histórico mostra todas as distribuições da rede para evitar entregas duplicadas.
+        </div>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Mês/Período</th>
+                    <th>Organização</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for d in last_distributions %}
+                <tr>
+                    <td>{{ d.delivered_at }}</td>
+                    <td>{{ d.product.name }}</td>
+                    <td>{{ d.period_month|date:"Y-m" }}</td>
+                    <td>{{ d.organization.name }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">Nenhuma distribuição encontrada.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

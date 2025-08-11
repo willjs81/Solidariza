@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}{{ org.name }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                <i class="fas fa-building"></i> {{ org.name }}
+            </h1>
+        </div>
+        <div class="level-right">
+            <a href="{% url 'panel:organization_list' %}" class="button">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            {% if org.is_active %}
+            <a href="{% url 'panel:organization_toggle_active' org.pk %}" class="button is-warning" style="margin-left:.5rem;">
+                <i class="fas fa-ban"></i> Desativar
+            </a>
+            {% else %}
+            <a href="{% url 'panel:organization_toggle_active' org.pk %}" class="button is-success" style="margin-left:.5rem;">
+                <i class="fas fa-check"></i> Ativar
+            </a>
+            {% endif %}
+            <form method="post" action="{% url 'panel:organization_delete' org.pk %}" style="margin-left:.5rem;" onsubmit="return confirm('Deseja realmente excluir esta organização? Esta ação é irreversível.');">
+                {% csrf_token %}
+                <button class="button is-danger" type="submit">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas da Organização -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Colaboradores</p>
+                <p class="title is-3 has-text-primary">{{ total_collaborators }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Assistidos</p>
+                <p class="title is-3 has-text-info">{{ total_beneficiaries }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colaboradores da Organização -->
+    <div class="box">
+        <div class="level">
+            <div class="level-left">
+                <h2 class="subtitle">
+                    <i class="fas fa-users"></i> Colaboradores ({{ total_collaborators }})
+                </h2>
+            </div>
+            <div class="level-right">
+                <a href="{% url 'panel:collaborator_create' %}" class="button is-success">
+                    <i class="fas fa-plus"></i> Adicionar Colaborador
+                </a>
+            </div>
+        </div>
+        
+        {% if collaborators %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Papel</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for collaborator in collaborators %}
+                <tr>
+                    <td>
+                        <strong>{{ collaborator.first_name }} {{ collaborator.last_name }}</strong>
+                        <br><small class="has-text-grey">{{ collaborator.username }}</small>
+                    </td>
+                    <td>{{ collaborator.email }}</td>
+                    <td>
+                        <span class="tag {% if collaborator.role == 'ADMIN' %}is-danger{% elif collaborator.role == 'MANAGER' %}is-warning{% else %}is-info{% endif %}">
+                            {{ collaborator.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if collaborator.is_active %}
+                            <span class="tag is-success">Ativo</span>
+                        {% else %}
+                            <span class="tag is-danger">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'panel:collaborator_detail' collaborator.id %}" class="button is-small">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum colaborador encontrado.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Assistidos da Organização -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-heart"></i> Assistidos ({{ total_beneficiaries }})
+        </h2>
+        
+        {% if beneficiaries %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Identificador</th>
+                    <th>Idade</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for beneficiary in beneficiaries %}
+                <tr>
+                    <td>
+                        <strong>{{ beneficiary.name }}</strong>
+                    </td>
+                    <td>{{ beneficiary.identifier }}</td>
+                    <td>
+                        {% if beneficiary.birth_date %}
+                            {{ beneficiary.birth_date|calculate_age }} anos
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if beneficiary.active %}
+                            <span class="tag is-success">Ativo</span>
+                        {% else %}
+                            <span class="tag is-danger">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'panel:beneficiary_detail' beneficiary.id %}" class="button is-small">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum assistido encontrado.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

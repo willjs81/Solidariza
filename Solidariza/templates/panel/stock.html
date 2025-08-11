@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Controle de Estoque{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">
+        <i class="fas fa-boxes"></i> Controle de Estoque
+    </h1>
+
+    {% if is_network_view %}
+    <div class="notification is-info">
+        <i class="fas fa-info-circle"></i>
+        Visualizando <strong>Toda a Rede</strong>. Esta é uma visão agregada e de somente leitura. Para cadastrar produtos ou registrar movimentações, selecione uma organização específica no seletor lateral.
+    </div>
+    {% endif %}
+
+    <!-- Alertas de Estoque -->
+    {% if products_in_critical > 0 or products_low > 0 %}
+    <div class="notification is-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Atenção!</strong>
+        {% if products_in_critical > 0 %}
+            {{ products_in_critical }} produto{{ products_in_critical|pluralize:"s" }} em nivel critico.
+        {% endif %}
+        {% if products_low > 0 %}
+            {{ products_low }} produto{{ products_low|pluralize:"s" }} com estoque baixo.
+        {% endif %}
+        <strong>Reabastecimento necessario!</strong>
+    </div>
+    {% endif %}
+
+    <!-- Estatísticas Gerais -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Total de Produtos</p>
+                <p class="title is-3 has-text-info">{{ stock_data|length }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Assistidos Ativos</p>
+                <p class="title is-3 has-text-primary">{{ total_beneficiaries }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Produtos em Nivel Critico</p>
+                <p class="title is-3 has-text-danger">{{ products_in_critical }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Produtos com Estoque Baixo</p>
+                <p class="title is-3 has-text-warning">{{ products_low }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Controle de Estoque -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-chart-bar"></i> Status dos Produtos
+        </h2>
+        
+        {% if stock_data %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        {% if is_network_view %}<th>Organização</th>{% endif %}
+                        <th>Estoque Atual</th>
+                        <th>Total Entradas</th>
+                        <th>Total Saidas</th>
+                        <th>Nivel para 1 Mes</th>
+                        <th>Dias de Suprimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in stock_data %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.product.name }}</strong>
+                        </td>
+                        {% if is_network_view %}
+                        <td>
+                            <span class="tag is-light">{{ item.product.organization.name }}</span>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <span class="tag is-large {% if item.status == 'empty' %}is-danger{% elif item.status == 'critical' %}is-danger{% elif item.status == 'low' %}is-warning{% else %}is-success{% endif %}">
+                                {{ item.current_stock }} un.
+                            </span>
+                        </td>
+                        <td>
+                            <span class="tag is-success is-light">
+                                <i class="fas fa-arrow-up"></i> {{ item.entries }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="tag is-danger is-light">
+                                <i class="fas fa-arrow-down"></i> {{ item.exits }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="tag is-info is-light">
+                                {{ item.estimated_month_supply }} un.
+                            </span>
+                            {% if item.current_stock < item.estimated_month_supply %}
+                                <br><small class="has-text-danger">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Faltam {{ item.estimated_month_supply|subtract:item.current_stock }} unidades
+                                </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.days_supply > 0 %}
+                                <span class="tag {% if item.days_supply < 7 %}is-danger{% elif item.days_supply < 15 %}is-warning{% else %}is-success{% endif %}">
+                                    {{ item.days_supply }} dia{{ item.days_supply|pluralize:"s" }}
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">0 dias</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="tag {% if item.status == 'empty' %}is-danger{% elif item.status == 'critical' %}is-danger{% elif item.status == 'low' %}is-warning{% else %}is-success{% endif %}">
+                                {% if item.status == 'empty' %}
+                                    <i class="fas fa-times-circle"></i>
+                                {% elif item.status == 'critical' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% elif item.status == 'low' %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% else %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% endif %}
+                                {{ item.status_text }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum produto cadastrado ainda.
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not is_network_view %}
+    <!-- Cadastro rápido de Produto -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-box"></i> Cadastrar Produto
+        </h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_product">
+            <div class="columns">
+                <div class="column is-6">
+                    <label class="label">Nome do Produto</label>
+                    <input class="input" type="text" name="product_name" placeholder="Ex.: Cesta Básica" required>
+                </div>
+                <div class="column is-3" style="display:flex;align-items:flex-end;">
+                    <label class="checkbox">
+                        <input type="checkbox" name="product_is_bundle"> É cesta
+                    </label>
+                </div>
+                <div class="column is-3" style="display:flex;align-items:flex-end;">
+                    <button class="button is-link is-fullwidth" type="submit">
+                        <i class="fas fa-plus"></i>&nbsp;Cadastrar Produto
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Formulário de Movimentação -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-exchange-alt"></i> Nova Movimentação
+        </h2>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="columns">
+                <div class="column">
+                    <label class="label">Produto</label>
+                    <div class="select is-fullwidth">
+                        <select name="product_id" required>
+                            <option value="">Selecione o produto</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}">{{ product.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">Tipo</label>
+                    <div class="select is-fullwidth">
+                        <select name="kind" required>
+                            <option value="{{ StockMovement.IN }}">
+                                <i class="fas fa-arrow-up"></i> Entrada
+                            </option>
+                            <option value="{{ StockMovement.OUT }}">
+                                <i class="fas fa-arrow-down"></i> Saída
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">Quantidade</label>
+                    <input class="input" type="number" name="quantity" placeholder="Quantidade" min="1" required>
+                </div>
+                <div class="column">
+                    <label class="label">Motivo</label>
+                    <input class="input" type="text" name="reason" placeholder="Motivo (opcional)">
+                </div>
+                <div class="column">
+                    <label class="label">&nbsp;</label>
+                    <button class="button is-primary is-fullwidth" type="submit">
+                        <i class="fas fa-save"></i> Registrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Últimas Movimentações -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-history"></i> Últimas Movimentações
+        </h2>
+        
+        {% if movements %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Produto</th>
+                        <th>Tipo</th>
+                        <th>Quantidade</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movement in movements %}
+                    <tr>
+                        <td>{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ movement.product.name }}</td>
+                        <td>
+                            {% if movement.kind == StockMovement.IN %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-arrow-up"></i> Entrada
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-arrow-down"></i> Saída
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ movement.quantity }}</strong> un.
+                        </td>
+                        <td>{{ movement.reason|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma movimentação registrada ainda.
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Legenda de Status -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-info-circle"></i> Legenda de Status
+        </h2>
+        <div class="columns">
+            <div class="column">
+                <span class="tag is-success">
+                    <i class="fas fa-check-circle"></i> Adequado
+                </span>
+                <p class="help">Estoque suficiente para mais de 1 mês</p>
+            </div>
+            <div class="column">
+                <span class="tag is-warning">
+                    <i class="fas fa-exclamation-circle"></i> Baixo
+                </span>
+                                            <p class="help">Estoque para menos de 1 mes, reabastecer em breve</p>
+            </div>
+            <div class="column">
+                <span class="tag is-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Critico
+                </span>
+                <p class="help">Estoque para menos de 15 dias, reabastecer urgente</p>
+            </div>
+            <div class="column">
+                <span class="tag is-danger">
+                    <i class="fas fa-times-circle"></i> Sem estoque
+                </span>
+                <p class="help">Produto esgotado, reabastecer imediatamente</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

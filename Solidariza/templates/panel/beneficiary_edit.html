@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Beneficiário{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Editar Beneficiário</h1>
+    </div>
+    <div class="level-right">
+      <a href="{% url 'panel:beneficiary_detail' b.id %}" class="button"><i class="fas fa-arrow-left"></i> Voltar</a>
+    </div>
+  </div>
+
+  <div class="box">
+    <form method="post">
+      {% csrf_token %}
+      <div class="columns">
+        <div class="column is-6">
+          <label class="label">Nome</label>
+          <input class="input" type="text" name="name" value="{{ b.name }}" required>
+        </div>
+        <div class="column is-6">
+          <label class="label">Identificador</label>
+          <input class="input" type="text" name="identifier" value="{{ b.identifier }}">
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column is-3">
+          <label class="label">Nascimento</label>
+          <input class="input" type="date" name="birth_date" value="{{ b.birth_date|date:'Y-m-d' }}">
+        </div>
+        <div class="column is-3">
+          <label class="label">CEP</label>
+          <input class="input" type="text" name="cep" value="{{ b.cep }}">
+        </div>
+        <div class="column is-6">
+          <label class="label">Endereço</label>
+          <input class="input" type="text" name="address" value="{{ b.address }}">
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column is-3">
+          <label class="label">Número</label>
+          <input class="input" type="text" name="address_number" value="{{ b.address_number }}">
+        </div>
+        <div class="column is-3">
+          <label class="label">Complemento</label>
+          <input class="input" type="text" name="address_complement" value="{{ b.address_complement }}">
+        </div>
+        <div class="column is-3">
+          <label class="label">Bairro</label>
+          <input class="input" type="text" name="district" value="{{ b.district }}">
+        </div>
+        <div class="column is-2">
+          <label class="label">Cidade</label>
+          <input class="input" type="text" name="city" value="{{ b.city }}">
+        </div>
+        <div class="column is-1">
+          <label class="label">UF</label>
+          <input class="input" type="text" name="state" value="{{ b.state }}" maxlength="2">
+        </div>
+      </div>
+
+      <div class="field is-grouped">
+        <div class="control">
+          <button class="button is-primary" type="submit"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+        <div class="control">
+          <a href="{% url 'panel:beneficiary_detail' b.id %}" class="button">Cancelar</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+

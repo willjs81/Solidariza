@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="level">
+  <div class="level-left"><h1 class="title">Eventos</h1></div>
+  {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+  <div class="level-right"><a class="button is-primary" href="/events/new/">Novo evento</a></div>
+  {% endif %}
+</div>
+<table class="table is-fullwidth is-striped">
+  <thead><tr><th>Data</th><th>Nome</th><th></th></tr></thead>
+  <tbody>
+  {% for e in events %}
+    <tr>
+      <td>{{ e.date }}</td>
+      <td>{{ e.name }}</td>
+      <td class="has-text-right">
+        <div class="buttons">
+          {% if user.is_superuser or user.role in 'ADMIN,MANAGER' %}
+          <a class="button is-small is-primary" href="{% url 'panel:event_attendance' e.pk %}">
+            <i class="fas fa-check-square"></i> Marcar presenças
+          </a>
+          {% endif %}
+          <a class="button is-small is-info" href="{% url 'panel:event_summary' e.pk %}">
+            <i class="fas fa-chart-pie"></i> Resumo
+          </a>
+        </div>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">Sem eventos</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

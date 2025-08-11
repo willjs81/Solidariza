@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="level">
+  <div class="level-left"><h1 class="title">Colaborador</h1></div>
+  <div class="level-right"><a class="button" href="{% url 'panel:collaborators_page' %}"><i class="fas fa-arrow-left"></i>&nbsp;Voltar</a></div>
+</div>
+<div class="box">
+  <div class="columns">
+    <div class="column"><strong>Usuário:</strong> {{ user_obj.username }}</div>
+    <div class="column"><strong>E-mail:</strong> {{ user_obj.email }}</div>
+  </div>
+  <div class="columns">
+    <div class="column"><strong>Organização:</strong> {{ user_obj.organization.name }}</div>
+    <div class="column"><strong>Papel:</strong> {{ user_obj.role }}</div>
+  </div>
+  <a class="button is-small" href="/collaborators/{{ user_obj.id }}/edit/">Editar</a>
+  <a class="button is-small" href="{% url 'panel:collaborators_page' %}">Voltar</a>
+</div>
+{% endblock %}
+

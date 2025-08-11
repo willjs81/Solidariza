@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="title">Nova Família</h1>
+<form method="post" class="box">
+  {% csrf_token %}
+  <div class="field">
+    <label class="label">Titular/Responsável</label>
+    <div class="control">
+      <div class="select is-fullwidth">
+        <select name="holder_id" id="holder_id" required>
+          <option value="">Selecione (ou cadastre abaixo)...</option>
+          {% for b in beneficiaries %}
+            <option value="{{ b.id }}" {% if preselected_holder == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <p class="help">O nome da família será definido automaticamente como o nome do titular.</p>
+  </div>
+  <div class="field">
+    <label class="label">Adicionar dependentes (opcional)</label>
+  </div>
+
+  <div id="dependentes"></div>
+  <button type="button" class="button is-light" onclick="addDep()">Adicionar dependente</button>
+  <button class="button is-primary" type="submit">Salvar</button>
+  <a class="button" href="/families/">Cancelar</a>
+</form>
+<script>
+function addDep(){
+  const c = document.createElement('div');
+  c.className='box';
+  c.innerHTML = `
+    <div class="field"><label class="label">Nome</label><div class="control"><input class="input" name="dep_name[]"></div></div>
+    <div class="field"><label class="label">Identificador (CPF ou outro)</label><div class="control"><input class="input" name="dep_identifier[]"></div></div>
+    <div class="field"><label class="label">Nascimento</label><div class="control"><input class="input" type="date" name="dep_birth[]"></div></div>
+  `;
+  document.getElementById('dependentes').appendChild(c);
+}
+</script>
+{% endblock %}
+

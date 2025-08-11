@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">Dashboard</h1>
+    
+    <!-- Alertas de Estoque -->
+    {% if critical_products or low_products %}
+    <div class="notification {% if critical_products %}is-danger{% else %}is-warning{% endif %}">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Atenção - Estoque!</strong>
+        {% if critical_products %}
+            <div class="mt-2">
+                <strong>Produtos em nível crítico:</strong>
+                {% for product in critical_products %}
+                    <span class="tag is-danger ml-1">{{ product.name }} ({{ product.stock }})</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if low_products %}
+            <div class="mt-2">
+                <strong>Produtos com estoque baixo:</strong>
+                {% for product in low_products %}
+                    <span class="tag is-warning ml-1">{{ product.name }} ({{ product.stock }})</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="mt-3">
+            <a href="{% url 'panel:stock_page' %}" class="button is-light is-small">
+                <i class="fas fa-boxes"></i> Gerenciar Estoque
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Estatísticas Principais -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="title is-3 has-text-primary">{{ beneficiaries }}</p>
+                <p class="subtitle">Assistidos</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="title is-3 has-text-success">{{ distributions }}</p>
+                <p class="subtitle">Distribuições</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="title is-3 has-text-info">{{ stock|length }}</p>
+                <p class="subtitle">Produtos</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <a class="button is-light" href="{% url 'panel:reports_page' %}?download=distributions_csv">
+                    <i class="fas fa-download"></i> Relatórios
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo do Estoque -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-boxes"></i> Resumo do Estoque
+        </h2>
+        
+        {% if stock %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Quantidade</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, qty in stock.items %}
+                    <tr>
+                        <td><strong>{{ name }}</strong></td>
+                        <td>
+                            <span class="tag is-large {% if qty == 0 %}is-danger{% elif qty <= 50 %}is-warning{% else %}is-success{% endif %}">
+                                {{ qty }} un.
+                            </span>
+                        </td>
+                        <td>
+                            {% if qty == 0 %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-times-circle"></i> Sem estoque
+                                </span>
+                            {% elif qty <= 20 %}
+                                <span class="tag is-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Crítico
+                                </span>
+                            {% elif qty <= 50 %}
+                                <span class="tag is-warning">
+                                    <i class="fas fa-exclamation-circle"></i> Baixo
+                                </span>
+                            {% else %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-check-circle"></i> Adequado
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if qty <= 50 %}
+                                <a href="{% url 'panel:stock_page' %}" class="button is-primary is-small">
+                                    <i class="fas fa-plus"></i> Reabastecer
+                                </a>
+                            {% else %}
+                                <span class="tag is-light">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'panel:stock_page' %}" class="button is-primary">
+                <i class="fas fa-boxes"></i> Ver Controle Completo
+            </a>
+        </div>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum produto cadastrado ainda.
+            <div class="mt-2">
+                <a href="{% url 'panel:stock_page' %}" class="button is-primary is-small">
+                    <i class="fas fa-plus"></i> Cadastrar Produtos
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Eventos: próximos e último realizado -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-calendar-alt"></i> Próximos Eventos
+        </h2>
+        {% if upcoming_events %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Evento</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in upcoming_events %}
+                <tr>
+                    <td>{{ ev.name }}</td>
+                    <td>{{ ev.date|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>Nenhum evento futuro cadastrado.</p>
+        {% endif %}
+
+        <h3 class="subtitle mt-4">
+            <i class="fas fa-history"></i> Último evento realizado
+        </h3>
+        {% if last_event %}
+        <p><strong>{{ last_event.name }}</strong> em {{ last_event.date|date:"d/m/Y" }}. <a href="{% url 'panel:events_list' %}">Ver eventos</a></p>
+        {% else %}
+        <p>Nenhum evento realizado ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

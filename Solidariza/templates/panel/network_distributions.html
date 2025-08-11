@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Distribuições da Rede{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">
+        <i class="fas fa-network-wired"></i> Distribuições da Rede
+    </h1>
+    
+    <!-- Estatísticas Gerais -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Total de ONGs</p>
+                <p class="title is-3 has-text-primary">{{ total_organizations }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Beneficiários</p>
+                <p class="title is-3 has-text-info">{{ total_beneficiaries }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Distribuições</p>
+                <p class="title is-3 has-text-success">{{ total_distributions }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Beneficiários e Próximas Entregas -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-calendar-alt"></i> Controle de Entregas
+        </h2>
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> 
+            Monitoramento para evitar entregas duplicadas - beneficiários só podem receber uma vez por mês em toda a rede.
+        </div>
+        
+        <div class="field has-addons" style="margin-bottom: 1rem;">
+            <div class="control is-expanded">
+                <input id="nd-search" class="input" type="text" placeholder="Buscar beneficiário por nome, CPF/ID..." oninput="filterTable()">
+            </div>
+            <div class="control">
+                <a class="button is-static"><i class="fas fa-search"></i></a>
+            </div>
+        </div>
+
+        {% if beneficiaries_with_last %}
+        <table id="nd-table" class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Beneficiário</th>
+                    <th>Identificador</th>
+                    <th>Organizações</th>
+                    <th>Última Entrega</th>
+                    <th>Total Entregas</th>
+                    <th>Próxima Entrega</th>
+                    <th>Status</th>
+                    <th style="width:110px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for beneficiary in beneficiaries_with_last %}
+                <tr>
+                    <td>
+                        <strong>{{ beneficiary.name|proper_name }}</strong>
+                    </td>
+                    <td>{{ beneficiary.identifier }}</td>
+                    <td><span class="tag is-light">{{ beneficiary|org_names }}</span></td>
+                    <td>{{ beneficiary.last_distribution_date|date:"d/m/Y" }}</td>
+                    <td>{{ beneficiary.total_distributions }}</td>
+                    <td>
+                        {% with beneficiary.last_distribution_date|add_days:30 as next_date %}
+                            {{ next_date|date:"d/m/Y" }}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with beneficiary.last_distribution_date|add_days:30 as next_date %}
+                            {% now "Y-m-d" as today %}
+                            {% if next_date|date:"Y-m-d" <= today %}
+                                <span class="tag is-success">Liberado</span>
+                            {% else %}
+                                <span class="tag is-warning">Aguardando</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        <a class="button is-small is-info" href="{% url 'panel:beneficiary_detail' beneficiary.id %}">
+                            <i class="fas fa-eye"></i>&nbsp;Resumo
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma distribuição encontrada.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Distribuições Recentes -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-history"></i> Distribuições Recentes (30 dias)
+        </h2>
+        
+        {% if recent_distributions %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Beneficiário</th>
+                    <th>Produto</th>
+                    <th>Organização</th>
+                    <th>Período</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for distribution in recent_distributions %}
+                <tr>
+                    <td>{{ distribution.delivered_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <strong>{{ distribution.beneficiary.name|proper_name }}</strong>
+                        <br><small class="has-text-grey">{{ distribution.beneficiary.identifier }}</small>
+                    </td>
+                    <td>{{ distribution.product.name }}</td>
+                    <td>
+                        <span class="tag is-link is-light">{{ distribution.organization.name }}</span>
+                    </td>
+                    <td>{{ distribution.period_month|date:"m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhuma distribuição recente encontrada.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filterTable(){
+  const input = document.getElementById('nd-search');
+  const filter = (input.value || '').toLowerCase();
+  const table = document.getElementById('nd-table');
+  if (!table) return;
+  const rows = table.getElementsByTagName('tr');
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i].getElementsByTagName('td');
+    let text = '';
+    for (let j = 0; j < cells.length; j++) text += ' ' + (cells[j].innerText || cells[j].textContent);
+    rows[i].style.display = text.toLowerCase().includes(filter) ? '' : 'none';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="title">Novo Evento</h1>
+<form class="box" method="post">
+  {% csrf_token %}
+  <div class="columns">
+    <div class="column is-6"><div class="field"><label class="label">Nome</label><div class="control"><input class="input" name="name" required></div></div></div>
+    <div class="column is-3"><div class="field"><label class="label">Data</label><div class="control"><input class="input" type="date" name="date" required></div></div></div>
+  </div>
+  <button class="button is-primary" type="submit">Salvar</button>
+  <a class="button" href="/events/">Cancelar</a>
+</form>
+{% endblock %}
+

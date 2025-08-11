@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="title">Distribuição</h1>
+<form method="post" class="box">
+  {% csrf_token %}
+  <div class="field">
+    <label class="label">Beneficiário</label>
+    <div class="control">
+      <div class="select is-fullwidth">
+        <select name="beneficiary_id" required>
+          <option value="">Selecione...</option>
+          {% for b in beneficiaries %}
+            <option value="{{ b.id }}">{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="field">
+    <label class="label">Produto</label>
+    <div class="control">
+      <div class="select is-fullwidth">
+        <select name="product_id" required>
+          <option value="">Selecione...</option>
+          {% for p in products %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="field">
+    <label class="label">Mês</label>
+    <div class="control">
+      <input type="date" name="period_month" required class="input">
+    </div>
+  </div>
+  <button class="button is-primary" type="submit">Entregar</button>
+</form>
+
+<h2 class="title is-5">Recentes</h2>
+<table class="table is-fullwidth is-striped">
+  <thead><tr><th>Data</th><th>Beneficiário</th><th>Produto</th><th>Mês</th></tr></thead>
+  <tbody>
+    {% for d in recent %}
+      <tr>
+        <td>{{ d.delivered_at }}</td>
+        <td>{{ d.beneficiary.name }}</td>
+        <td>{{ d.product.name }}</td>
+        <td>{{ d.period_month|date:"Y-m" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Sem registros</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+

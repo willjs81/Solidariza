@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+
+{% block title %}Resumo: {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="level">
+        <div class="level-left">
+            <h1 class="title">
+                <i class="fas fa-chart-pie"></i> Resumo do Evento
+            </h1>
+        </div>
+        <div class="level-right">
+            <a href="{% url 'panel:events_list' %}" class="button">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações do Evento -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-calendar-alt"></i> {{ event.name }}
+        </h2>
+        <p><strong>Data:</strong> {{ event.date|date:"d/m/Y" }}</p>
+        <p><strong>Descrição:</strong> {{ event.description|default:"Sem descrição" }}</p>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="columns">
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Total de Participantes</p>
+                <p class="title is-3 has-text-info">{{ total_attendances }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Presentes</p>
+                <p class="title is-3 has-text-success">{{ present_count }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Ausentes</p>
+                <p class="title is-3 has-text-danger">{{ absent_count }}</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="box has-text-centered">
+                <p class="heading">Taxa de Presença</p>
+                <p class="title is-3 has-text-primary">
+                    {% if total_attendances > 0 %}
+                        {{ present_count|floatformat:0 }}/{{ total_attendances }}
+                        <small>({% widthratio present_count total_attendances 100 %}%)</small>
+                    {% else %}
+                        0%
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Participantes -->
+    <div class="box">
+        <h2 class="subtitle">
+            <i class="fas fa-users"></i> Lista de Participantes
+        </h2>
+        
+        {% if attendances %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Identificador/Documento</th>
+                    <th>Idade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendance in attendances %}
+                <tr>
+                    <td>
+                        <span class="tag is-info is-light">ID: #{{ attendance.beneficiary.id }}</span>
+                    </td>
+                    <td>
+                        <strong>{{ attendance.beneficiary.name }}</strong>
+                    </td>
+                    <td>
+                        <span class="tag is-{{ attendance.beneficiary|get_identification_type }}">
+                            {{ attendance.beneficiary|get_identification }}
+                        </span>
+                        {% if attendance.beneficiary.identifier and attendance.beneficiary.document and attendance.beneficiary.document != attendance.beneficiary.identifier %}
+                            <br><small class="has-text-grey">
+                                <i class="fas fa-file-alt"></i> Doc: {{ attendance.beneficiary.document }}
+                            </small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if attendance.beneficiary.birth_date %}
+                            {{ attendance.beneficiary.birth_date|calculate_age }} anos
+                            {% if attendance.beneficiary.birth_date|calculate_age < 18 %}
+                                <small class="has-text-warning">(menor)</small>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if attendance.present %}
+                            <span class="tag is-success">
+                                <i class="fas fa-check"></i> Presente
+                            </span>
+                        {% else %}
+                            <span class="tag is-danger">
+                                <i class="fas fa-times"></i> Ausente
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="notification is-info is-light">
+            <i class="fas fa-info-circle"></i> Nenhum participante registrado para este evento.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Ações -->
+    <div class="box">
+        <h2 class="subtitle">Ações</h2>
+        <div class="buttons">
+            <a href="{% url 'panel:event_attendance' event.pk %}" class="button is-primary">
+                <i class="fas fa-check-square"></i> Marcar Presenças
+            </a>
+            <a href="?download=attendance_csv" class="button is-info">
+                <i class="fas fa-download"></i> Baixar Lista (CSV)
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if request.GET.download == "attendance_csv" %}
+<script>
+// Gerar e baixar CSV de participantes
+const csvContent = "data:text/csv;charset=utf-8,ID,Nome,Identificador,Idade,Status\n" +
+    {% for attendance in attendances %}
+    "{{ attendance.beneficiary.id }},{{ attendance.beneficiary.name }},{{ attendance.beneficiary|get_identification }},{% if attendance.beneficiary.birth_date %}{{ attendance.beneficiary.birth_date|calculate_age }}{% else %}N/A{% endif %},{% if attendance.present %}Presente{% else %}Ausente{% endif %}\n" +
+    {% endfor %}
+    "";
+const encodedUri = encodeURI(csvContent);
+const link = document.createElement("a");
+link.setAttribute("href", encodedUri);
+link.setAttribute("download", "participantes_{{ event.name|slugify }}.csv");
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+</script>
+{% endif %}
+{% endblock %}
