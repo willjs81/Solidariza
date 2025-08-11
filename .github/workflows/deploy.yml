@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - dev
+      - homolog
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set env by branch
+        id: env
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then echo "env=prod" >> $GITHUB_OUTPUT; fi
+          if [[ "${GITHUB_REF##*/}" == "homolog" ]]; then echo "env=homolog" >> $GITHUB_OUTPUT; fi
+          if [[ "${GITHUB_REF##*/}" == "dev" ]]; then echo "env=dev" >> $GITHUB_OUTPUT; fi
+
+      - name: Show selected env
+        run: echo "Selected environment: ${{ steps.env.outputs.env }}"
+
+      - name: Build Docker image
+        run: |
+          docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.env.outputs.env }} .
+
+      - name: Save artifact
+        run: |
+          docker save solidariza:${{ steps.env.outputs.env }} | gzip > solidariza_${{ steps.env.outputs.env }}.tar.gz
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: solidariza_${{ steps.env.outputs.env }}
+          path: solidariza_${{ steps.env.outputs.env }}.tar.gz
+
