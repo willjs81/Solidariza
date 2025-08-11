@@ -31,8 +31,21 @@ jobs:
         run: |
           echo 'Selected environment: ${{ steps.select_env.outputs.env }}'
 
-      - name: Build Docker image
+      - name: Debug workspace
+        shell: bash
         run: |
+          set -euxo pipefail
+          pwd
+          ls -la
+          ls -la Solidariza || true
+          docker --version
+
+      - name: Build Docker image
+        shell: bash
+        env:
+          DOCKER_BUILDKIT: "1"
+        run: |
+          set -euxo pipefail
           docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.select_env.outputs.env }} .
 
       - name: Save artifact
