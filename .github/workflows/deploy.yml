@@ -31,9 +31,23 @@ jobs:
         run: |
           echo 'Selected environment: ${{ steps.select_env.outputs.env }}'
 
-      - name: Build Docker image
+      - name: Debug workspace
+        shell: bash
         run: |
-          docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.select_env.outputs.env }} .
+          set -euxo pipefail
+          pwd
+          ls -la
+          ls -la Solidariza || true
+          docker --version
+
+      - name: Build Docker image
+        shell: bash
+        env:
+          DOCKER_BUILDKIT: "1"
+        run: |
+          set -euxo pipefail
+          # Usa a pasta do projeto Django como contexto para que o Dockerfile encontre requirements.txt
+          docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.select_env.outputs.env }} Solidariza
 
       - name: Save artifact
         run: |
