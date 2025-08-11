@@ -46,7 +46,8 @@ jobs:
           DOCKER_BUILDKIT: "1"
         run: |
           set -euxo pipefail
-          docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.select_env.outputs.env }} .
+          # Usa a pasta do projeto Django como contexto para que o Dockerfile encontre requirements.txt
+          docker build -f Solidariza/Dockerfile -t solidariza:${{ steps.select_env.outputs.env }} Solidariza
 
       - name: Save artifact
         run: |
