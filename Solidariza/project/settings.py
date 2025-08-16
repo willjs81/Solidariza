@@ -84,9 +84,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Diretório de estáticos no projeto (para imagens, CSS e JS fora dos apps)
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+# Quando DEBUG=False, servir arquivos de apps e de BASE_DIR/static via collectstatic
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
