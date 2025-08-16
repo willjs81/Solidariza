@@ -651,9 +651,23 @@ def audit_page(request):
     if not request.user.is_superuser:
         messages.error(request, "Acesso negado.")
         return redirect("panel:dashboard")
-    from core.models import AuditLog
-    logs = AuditLog.objects.select_related("user", "organization").order_by("-created_at")[:200]
-    return render(request, "panel/audit.html", {"logs": logs})
+    from core.models import AuditLog, Organization
+    qs = AuditLog.objects.select_related("user", "organization").order_by("-created_at")
+    org_id = request.GET.get("organization")
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+    if org_id:
+        try:
+            qs = qs.filter(organization_id=int(org_id))
+        except Exception:
+            pass
+    if start:
+        qs = qs.filter(created_at__date__gte=start)
+    if end:
+        qs = qs.filter(created_at__date__lte=end)
+    logs = qs[:500]
+    orgs = Organization.objects.all().order_by("name")
+    return render(request, "panel/audit.html", {"logs": logs, "organizations": orgs, "organization": org_id or "", "start": start or "", "end": end or ""})
 
 @login_required
 def organization_page(request):

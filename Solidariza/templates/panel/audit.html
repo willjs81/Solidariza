@@ -2,7 +2,34 @@
 {% block content %}
 <section class="section">
   <div class="container">
-    <h1 class="title is-4">Auditoria de ações</h1>
+    <div class="level">
+      <div class="level-left">
+        <h1 class="title is-4">Auditoria de ações</h1>
+      </div>
+      <div class="level-right">
+        <form method="get" class="field is-grouped">
+          <div class="control">
+            <div class="select is-small">
+              <select name="organization">
+                <option value="">Todas as organizações</option>
+                {% for o in organizations %}
+                  <option value="{{ o.id }}" {% if organization == o.id|stringformat:'s' %}selected{% endif %}>{{ o.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="control">
+            <input class="input is-small" type="date" name="start" value="{{ start }}" placeholder="Início">
+          </div>
+          <div class="control">
+            <input class="input is-small" type="date" name="end" value="{{ end }}" placeholder="Fim">
+          </div>
+          <div class="control">
+            <button class="button is-small is-link" type="submit">Filtrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
     <table class="table is-fullwidth is-striped">
       <thead>
         <tr>
