@@ -771,7 +771,16 @@ def organization_create(request):
     if request.method == "POST":
         name = request.POST.get("name")
         if name:
-            Organization.objects.create(name=name)
+            o = Organization.objects.create(name=name)
+            log_action(
+                request.user,
+                request,
+                "organization_create",
+                model_name="Organization",
+                object_id=o.id,
+                description=o.name,
+                organization=o,
+            )
             messages.success(request, f"Organização '{name}' criada com sucesso.")
             return redirect("panel:organization_list")
         else:
@@ -826,6 +835,15 @@ def organization_delete(request, pk: int):
                 # Vínculos organização/beneficiário
                 from core.models import OrganizationBeneficiary
                 OrganizationBeneficiary.objects.filter(organization=org).delete()
+                # Registrar auditoria antes da exclusão
+                log_action(
+                    request.user,
+                    request,
+                    "organization_delete",
+                    model_name="Organization",
+                    object_id=org.id,
+                    description=name,
+                )
                 # Por fim, a própria organização
                 org.delete()
             messages.success(request, f"Organização '{name}' excluída com sucesso.")
@@ -846,6 +864,15 @@ def organization_toggle_active(request, pk: int):
     org.is_active = not org.is_active
     org.save(update_fields=["is_active"])
     status = "ativada" if org.is_active else "desativada"
+    log_action(
+        request.user,
+        request,
+        "organization_toggle_active",
+        model_name="Organization",
+        object_id=org.id,
+        description=f"{org.name} {status}",
+        organization=org,
+    )
     messages.success(request, f"Organização '{org.name}' {status}.")
     return redirect("panel:organization_detail", pk=org.pk)
 
@@ -875,6 +902,15 @@ def collaborator_create(request):
             org = get_active_organization(request)
         if username and password and role:
             u = User.objects.create_user(username=username, password=password, email=email, organization=org, role=role)
+            log_action(
+                request.user,
+                request,
+                "collaborator_create",
+                model_name="User",
+                object_id=u.id,
+                description=f"{u.username} ({role})",
+                organization=org,
+            )
             messages.success(request, "Colaborador criado.")
             return redirect("panel:collaborator_detail", pk=u.pk)
         messages.error(request, "Preencha os campos obrigatórios.")
@@ -909,10 +945,45 @@ def collaborator_edit(request, pk: int):
         if role:
             u.role = role
         u.save()
+        log_action(
+            request.user,
+            request,
+            "collaborator_edit",
+            model_name="User",
+            object_id=u.id,
+            description=f"{u.username} -> org={u.organization_id} role={u.role}",
+            organization=u.organization,
+        )
         messages.success(request, "Colaborador atualizado.")
         return redirect("panel:collaborator_detail", pk=u.pk)
     orgs = Organization.objects.all().order_by("name")
     return render(request, "panel/collaborator_edit.html", {"user_obj": u, "orgs": orgs})
+
+
+@login_required
+@require_admin
+def collaborator_delete(request, pk: int):
+    if not (request.user.is_admin() or request.user.is_superuser):
+        messages.error(request, "Apenas administradores podem excluir colaboradores.")
+        return redirect("panel:collaborators_page")
+    u = get_object_or_404(User, pk=pk)
+    if request.method == "POST":
+        username = u.username
+        org = u.organization
+        uid = u.id
+        u.delete()
+        log_action(
+            request.user,
+            request,
+            "collaborator_delete",
+            model_name="User",
+            object_id=uid,
+            description=username,
+            organization=org,
+        )
+        messages.success(request, "Colaborador removido.")
+        return redirect("panel:collaborators_page")
+    return render(request, "panel/collaborator_delete_confirm.html", {"user_obj": u})
 
 
 @login_required

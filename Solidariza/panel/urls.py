@@ -21,6 +21,7 @@ urlpatterns = [
     path("collaborators/new/", views.collaborator_create, name="collaborator_create"),
     path("collaborators/<int:pk>/", views.collaborator_detail, name="collaborator_detail"),
     path("collaborators/<int:pk>/edit/", views.collaborator_edit, name="collaborator_edit"),
+    path("collaborators/<int:pk>/delete/", views.collaborator_delete, name="collaborator_delete"),
     path("reports/", views.reports_page, name="reports_page"),
     path("families/", views.family_list, name="family_list"),
     path("families/new/", views.family_create, name="family_create"),
