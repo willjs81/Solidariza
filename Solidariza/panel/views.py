@@ -21,6 +21,8 @@ from core.middleware import get_active_organization
 from accounts.models import User
 from django.utils import timezone
 from django.http import HttpResponseBadRequest
+from django.contrib.sessions.models import Session
+from core.models import UserSession
 
 
 # --- Helpers de permissão ----------------------------------------------------
@@ -592,6 +594,42 @@ def network_distributions(request):
     }
     return render(request, "panel/network_distributions.html", context)
 
+
+@login_required
+def sessions_page(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:dashboard")
+    from datetime import timedelta
+    now = timezone.now()
+    online_threshold = now - timedelta(minutes=5)
+    sessions = (
+        UserSession.objects.select_related("user", "organization")
+        .filter(last_seen__gte=online_threshold, is_active=True)
+        .order_by("-last_seen")
+    )
+    return render(request, "panel/sessions.html", {"sessions": sessions, "now": now})
+
+
+@login_required
+def session_terminate(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:sessions_page")
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método inválido")
+    key = request.POST.get("session_key")
+    if not key:
+        messages.error(request, "Chave de sessão não informada.")
+        return redirect("panel:sessions_page")
+    # Encerrar: marca como inativa e apaga a sessão do Django se existir
+    UserSession.objects.filter(session_key=key).update(is_active=False)
+    try:
+        Session.objects.filter(session_key=key).delete()
+    except Exception:
+        pass
+    messages.success(request, "Sessão encerrada.")
+    return redirect("panel:sessions_page")
 
 @login_required
 def organization_page(request):

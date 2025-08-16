@@ -63,6 +63,7 @@
             <a class="sj-item" href="{% url 'panel:organization_page' %}">Minha Organização</a>
             {% if user.is_superuser %}
             <a class="sj-item" href="{% url 'panel:organization_list' %}">Organizações</a>
+            <a class="sj-item" href="{% url 'panel:sessions_page' %}">Sessões ativas</a>
             {% endif %}
             {% if user.is_superuser or user.role == 'ADMIN' %}
             <a class="sj-item" href="{% url 'panel:collaborators_page' %}">Colaboradores</a>

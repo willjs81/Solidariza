@@ -1,7 +1,8 @@
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.urls import reverse
-from .models import Organization
+from .models import Organization, UserSession
+from django.utils import timezone
 
 
 class OrganizationAccessMiddleware:
@@ -63,6 +64,31 @@ class OrganizationAccessMiddleware:
                 return redirect('login')
         
         response = self.get_response(request)
+        # Atualiza last_seen das sessões
+        try:
+            if request.user.is_authenticated and request.session.session_key:
+                # ONG ativa da sessão
+                org_id = request.session.get('active_organization_id')
+                org = None
+                if org_id:
+                    try:
+                        org = Organization.objects.get(id=org_id)
+                    except Organization.DoesNotExist:
+                        org = None
+                UserSession.objects.update_or_create(
+                    session_key=request.session.session_key,
+                    defaults={
+                        'user': request.user,
+                        'organization': org,
+                        'ip_address': request.META.get('REMOTE_ADDR', ''),
+                        'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                        'last_seen': timezone.now(),
+                        'is_active': True,
+                    },
+                )
+        except Exception:
+            # não bloqueia a request caso a auditoria falhe
+            pass
         return response
 
 

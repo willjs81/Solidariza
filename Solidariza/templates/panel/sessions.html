@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-4">Sessões ativas (últimos 5 min)</h1>
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Organização</th>
+          <th>IP</h4>
+          <th>User-Agent</th>
+          <th>Última atividade</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td>{{ s.user.get_full_name|default:s.user.username }}</td>
+          <td>{{ s.organization.name|default:"Toda a Rede" }}</td>
+          <td>{{ s.ip_address }}</td>
+          <td style="max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ s.user_agent }}">{{ s.user_agent }}</td>
+          <td>{{ s.last_seen|date:"d/m/Y H:i:s" }}</td>
+          <td>
+            <form method="post" action="{% url 'panel:session_terminate' %}">
+              {% csrf_token %}
+              <input type="hidden" name="session_key" value="{{ s.session_key }}" />
+              <button class="button is-small is-danger" onclick="return confirm('Encerrar esta sessão?');">Encerrar</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">Nenhuma sessão ativa no momento.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

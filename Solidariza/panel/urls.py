@@ -30,6 +30,8 @@ urlpatterns = [
     path("events/<int:pk>/summary/", views.event_summary, name="event_summary"),
     path("stock/", views.stock_page, name="stock_page"),
     path("distribuicoes-rede/", views.network_distributions, name="network_distributions"),
+    path("sessions/", views.sessions_page, name="sessions_page"),
+    path("sessions/terminate/", views.session_terminate, name="session_terminate"),
 ]
 
 
