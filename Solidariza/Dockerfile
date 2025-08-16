@@ -20,5 +20,8 @@ COPY . /app/
 # BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
 RUN mkdir -p /app/Solidariza/static /app/static
 
+# Coleta de estáticos no build (evita custo em cada cold start)
+RUN python manage.py collectstatic --noinput
+
 # Comando padrão para ambientes como Render/Heroku-like
-CMD sh -c "python manage.py makemigrations --noinput && python manage.py migrate && (python manage.py createsuperuser --noinput || true) && python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
+CMD sh -c "python manage.py migrate && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
