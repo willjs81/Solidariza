@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-4">Auditoria de ações</h1>
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Quando</th>
+          <th>Usuário</th>
+          <th>Organização</th>
+          <th>Ação</th>
+          <th>Alvo</th>
+          <th>Descrição</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
+          <td>{{ log.user.get_full_name|default:log.user.username }}</td>
+          <td>{{ log.organization.name|default:"" }}</td>
+          <td>{{ log.action }}</td>
+          <td>{{ log.model_name }} {{ log.object_id }}</td>
+          <td>{{ log.description }}</td>
+          <td>{{ log.ip_address }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">Sem registros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

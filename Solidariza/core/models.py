@@ -355,3 +355,22 @@ def generate_identifier() -> str:
     return uuid.uuid4().hex
 
 
+
+# Auditoria simples de ações de usuário
+class AuditLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=64)
+    model_name = models.CharField(max_length=128, blank=True)
+    object_id = models.CharField(max_length=64, blank=True)
+    description = models.TextField(blank=True)
+    ip_address = models.CharField(max_length=64, blank=True)
+    user_agent = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "created_at"]) ]
+        ordering = ["-created_at"]
+        verbose_name = "Auditoria"
+        verbose_name_plural = "Auditorias"
+

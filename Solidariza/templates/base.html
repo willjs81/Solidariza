@@ -64,6 +64,7 @@
             {% if user.is_superuser %}
             <a class="sj-item" href="{% url 'panel:organization_list' %}">Organizações</a>
             <a class="sj-item" href="{% url 'panel:sessions_page' %}">Sessões ativas</a>
+            <a class="sj-item" href="{% url 'panel:audit_page' %}">Auditoria</a>
             {% endif %}
             {% if user.is_superuser or user.role == 'ADMIN' %}
             <a class="sj-item" href="{% url 'panel:collaborators_page' %}">Colaboradores</a>

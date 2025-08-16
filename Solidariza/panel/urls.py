@@ -32,6 +32,7 @@ urlpatterns = [
     path("distribuicoes-rede/", views.network_distributions, name="network_distributions"),
     path("sessions/", views.sessions_page, name="sessions_page"),
     path("sessions/terminate/", views.session_terminate, name="session_terminate"),
+    path("audit/", views.audit_page, name="audit_page"),
 ]
 
 

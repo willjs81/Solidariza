@@ -23,6 +23,7 @@ from django.utils import timezone
 from django.http import HttpResponseBadRequest
 from django.contrib.sessions.models import Session
 from core.models import UserSession
+from core.audit import log_action
 
 
 # --- Helpers de permissão ----------------------------------------------------
@@ -602,13 +603,19 @@ def sessions_page(request):
         return redirect("panel:dashboard")
     from datetime import timedelta
     now = timezone.now()
-    online_threshold = now - timedelta(minutes=5)
-    sessions = (
-        UserSession.objects.select_related("user", "organization")
-        .filter(last_seen__gte=online_threshold, is_active=True)
-        .order_by("-last_seen")
-    )
-    return render(request, "panel/sessions.html", {"sessions": sessions, "now": now})
+    rng = (request.GET.get("range") or "5").strip()
+    valid = {"5": 5, "15": 15, "30": 30}
+    if rng == "all":
+        sessions = UserSession.objects.select_related("user", "organization").order_by("-last_seen")
+    else:
+        minutes = valid.get(rng, 5)
+        online_threshold = now - timedelta(minutes=minutes)
+        sessions = (
+            UserSession.objects.select_related("user", "organization")
+            .filter(last_seen__gte=online_threshold, is_active=True)
+            .order_by("-last_seen")
+        )
+    return render(request, "panel/sessions.html", {"sessions": sessions, "now": now, "range": rng})
 
 
 @login_required
@@ -628,8 +635,19 @@ def session_terminate(request):
         Session.objects.filter(session_key=key).delete()
     except Exception:
         pass
+    log_action(request.user, request, "session_terminate", model_name="UserSession", object_id=key, description="Encerrar sessão")
     messages.success(request, "Sessão encerrada.")
     return redirect("panel:sessions_page")
+
+
+@login_required
+def audit_page(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:dashboard")
+    from core.models import AuditLog
+    logs = AuditLog.objects.select_related("user", "organization").order_by("-created_at")[:200]
+    return render(request, "panel/audit.html", {"logs": logs})
 
 @login_required
 def organization_page(request):
