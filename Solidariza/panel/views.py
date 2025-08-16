@@ -404,6 +404,9 @@ def beneficiary_edit(request, pk: int):
 def distribution_page(request):
     org = get_active_organization(request)
     if request.method == "POST":
+        if org is None:
+            messages.error(request, "Na visão 'Toda a Rede' as entregas são somente leitura. Selecione uma organização para registrar entregas.")
+            return redirect("panel:distribution_page")
         beneficiary_id = request.POST.get("beneficiary_id")
         product_id = request.POST.get("product_id")
         period = request.POST.get("period_month")
@@ -1369,6 +1372,8 @@ def event_create(request):
             )
             messages.success(request, "Evento criado.")
             return redirect("panel:events_list")
+        else:
+            messages.error(request, "Nome do evento é obrigatório.")
     return render(request, "panel/event_create.html")
 
 
