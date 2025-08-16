@@ -92,6 +92,17 @@ git push -u origin feature/minha-feature
 - Gerenciado: AWS App Runner + RDS
 - Alternativas simples: Railway/Render (2 serviços: dev e prod)
 
+### Deploy no Render (Docker)
+
+1) Conecte o repositório no Render.
+2) Use `render.yaml` (raiz do repo) para provisionar Web e Postgres.
+3) Variáveis já configuradas no arquivo; após o primeiro deploy, acesse o shell do serviço e crie o superusuário:
+
+```bash
+python Solidariza/manage.py createsuperuser
+```
+
+
 ### Passo a passo (prod-like no Lightsail)
 
 1) Criar `.env.prod` em `Solidariza/.env.prod`:
