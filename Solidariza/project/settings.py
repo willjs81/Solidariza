@@ -9,7 +9,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+# Boolean case-insensitive: aceita true/True/1/yes/on
+DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes", "on")
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 # Permitir POSTs seguros via domínios externos (ex.: túnel HTTPS)
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
@@ -75,7 +76,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "pt-br"
-TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "America/Sao_Paulo")
+# Aceita DJANGO_TIME_ZONE ou TIME_ZONE
+TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", os.getenv("TIME_ZONE", "America/Sao_Paulo"))
 USE_I18N = True
 USE_TZ = True
 
@@ -112,6 +114,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+
+# Proxy SSL (Render/Heroku-like): garante request.is_secure e URLs https
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Jazzmin basic branding
 JAZZMIN_SETTINGS = {
