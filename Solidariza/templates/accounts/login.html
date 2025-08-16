@@ -23,6 +23,19 @@
       font-size: clamp(2rem, 8vw, 5rem);
       user-select: none;
     }
+    /* Toggle de senha */
+    .login-input{ position: relative; }
+    .login-input .toggle-password{
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 4px;
+    }
   </style>
   <div class="login-center">
     <div class="login-card">
@@ -42,6 +55,9 @@
         <div class="login-input">
           <i class="fas fa-lock"></i>
           <input type="password" name="password" placeholder="Senha" required>
+          <button type="button" class="toggle-password" aria-label="Mostrar senha">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
                   <div class="login-input">
             <i class="fas fa-building"></i>
@@ -61,6 +77,24 @@
     </div>
   </div>
 </section>
+<script>
+  (function(){
+    const input = document.querySelector('.login-form input[name="password"]');
+    const btn = document.querySelector('.login-form .toggle-password');
+    if (input && btn) {
+      btn.addEventListener('click', function(){
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        const icon = btn.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye', !show);
+          icon.classList.toggle('fa-eye-slash', show);
+        }
+        btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+      });
+    }
+  })();
+</script>
 {% endblock %}
 
 
