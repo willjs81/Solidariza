@@ -126,11 +126,13 @@ def set_active_organization(request):
         if not org_id or org_id == "":
             request.session.pop("active_organization_id", None)
             messages.success(request, "Visualizando toda a rede.")
+            log_action(request.user, request, "set_active_org", description="Toda a Rede")
             return redirect("panel:dashboard")
         try:
             org = Organization.objects.get(id=org_id)
             request.session["active_organization_id"] = org.id
             messages.success(request, f"Organização ativa: {org.name}")
+            log_action(request.user, request, "set_active_org", model_name="Organization", object_id=org.id, description=org.name, organization=org)
         except Organization.DoesNotExist:
             messages.error(request, "Organização não encontrada.")
         return redirect("panel:dashboard")
@@ -138,6 +140,7 @@ def set_active_organization(request):
     # Usuário não-superuser: só pode setar sua própria org
     if hasattr(request.user, "organization") and request.user.organization:
         request.session["active_organization_id"] = request.user.organization.id
+        log_action(request.user, request, "set_active_org", model_name="Organization", object_id=request.user.organization.id, description=request.user.organization.name, organization=request.user.organization)
         return redirect("panel:dashboard")
 
     messages.error(request, "Sem organização vinculada ao usuário.")
@@ -315,10 +318,12 @@ def beneficiary_create(request):
                 org = get_active_organization(request)
                 if org:
                     OrganizationBeneficiary.objects.get_or_create(organization=org, beneficiary=b)
+                    log_action(request.user, request, "beneficiary_create", model_name="Beneficiary", object_id=b.id, description=b.name, organization=org)
                 else:
                     # Se não há ONG ativa, tenta usar a organização do usuário logado (se houver)
                     if hasattr(request.user, 'organization') and request.user.organization:
                         OrganizationBeneficiary.objects.get_or_create(organization=request.user.organization, beneficiary=b)
+                        log_action(request.user, request, "beneficiary_create", model_name="Beneficiary", object_id=b.id, description=b.name, organization=request.user.organization)
             except Exception as exc:  # noqa: BLE001
                 messages.error(request, str(exc))
                 org = get_active_organization(request)
@@ -466,6 +471,7 @@ def stock_page(request):
                     StockMovement.objects.create(
                         organization=org, product=product, kind=kind, quantity=quantity, reason=reason, created_by=request.user
                     )
+                    log_action(request.user, request, "stock_movement", model_name="StockMovement", object_id=product.id, description=f"{kind} {quantity} {product.name}", organization=org)
                     messages.success(request, "Movimentação registrada com sucesso.")
                     return redirect("panel:stock_page")
             except Exception as exc:  # noqa: BLE001
