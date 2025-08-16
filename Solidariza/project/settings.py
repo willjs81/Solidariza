@@ -86,7 +86,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Diretório de estáticos no projeto (para imagens, CSS e JS fora dos apps)
 # Quando DEBUG=False, servir arquivos de apps e de BASE_DIR/static via collectstatic
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Evitar erro 500 caso o manifest não esteja disponível; CompressedStaticFilesStorage é suficiente
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
