@@ -16,6 +16,5 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app/
 
-# Collect static in prod via compose command
-
-
+# Comando padrão para ambientes como Render/Heroku-like
+CMD sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
