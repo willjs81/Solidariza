@@ -83,9 +83,11 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# Diretório de estáticos no projeto (para imagens, CSS e JS fora dos apps)
-# Quando DEBUG=False, servir arquivos de apps e de BASE_DIR/static via collectstatic
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Diretórios adicionais de estáticos do projeto (além dos app/static)
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    BASE_DIR / "panel" / "static",
+]
 # Evitar erro 500 caso o manifest não esteja disponível; CompressedStaticFilesStorage é suficiente
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
