@@ -53,6 +53,15 @@
         <h1 class="title is-4" style="margin:0 0 6px 0; line-height:1.25;">Solidariza</h1>
         <p class="subtitle is-6" style="color:#6b7280; margin:0; line-height:1.35;">Bem-vindo! Faça login para acessar o painel.</p>
       </div>
+      {% if messages %}
+      {% for message in messages %}
+        {% if 'error' in message.tags %}
+        <div class="notification is-danger is-light" style="margin-bottom:12px;">
+          {{ message }}
+        </div>
+        {% endif %}
+      {% endfor %}
+      {% endif %}
       <div class="login-icon">
         <i class="fas fa-users"></i>
       </div>
