@@ -92,6 +92,55 @@ git push -u origin feature/minha-feature
 - Gerenciado: AWS App Runner + RDS
 - Alternativas simples: Railway/Render (2 serviços: dev e prod)
 
+### Passo a passo (prod-like no Lightsail)
+
+1) Criar `.env.prod` em `Solidariza/.env.prod`:
+
+```env
+DJANGO_SECRET_KEY=troque-esta-chave
+DJANGO_DEBUG=False
+ALLOWED_HOSTS=seu-dominio.com.br,www.seu-dominio.com.br
+CSRF_TRUSTED_ORIGINS=https://seu-dominio.com.br,https://www.seu-dominio.com.br
+TIME_ZONE=America/Sao_Paulo
+
+# Postgres (serviço db)
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=solidariza
+DATABASE_URL=postgres://postgres:postgres@db:5432/solidariza
+```
+
+2) Subir serviços:
+
+```bash
+docker compose -f Solidariza/docker-compose.prod.yml up -d --build
+```
+
+3) Criar superusuário:
+
+```bash
+docker compose -f Solidariza/docker-compose.prod.yml exec web python manage.py createsuperuser
+```
+
+4) (Opcional) Emitir TLS via webroot (Let's Encrypt):
+
+```bash
+export DOMAIN=seu-dominio.com.br
+docker compose -f Solidariza/docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d $DOMAIN -d www.$DOMAIN --email admin@$DOMAIN --agree-tos --no-eff-email
+docker compose -f Solidariza/docker-compose.prod.yml restart nginx
+```
+
+5) Renovação automática já configurada (serviço `certbot`).
+
+6) Diagnóstico:
+
+```bash
+docker compose -f Solidariza/docker-compose.prod.yml ps
+docker compose -f Solidariza/docker-compose.prod.yml logs -f --tail=200
+```
+
 Checklist produção:
 - DEBUG=False, SECRET_KEY seguro, ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS
 - Banco Postgres, storage de mídia (ex.: S3)
