@@ -16,5 +16,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app/
 
+# Garantir diretório de estáticos esperado pelo settings (silencia W004)
+RUN mkdir -p /app/static
+
 # Comando padrão para ambientes como Render/Heroku-like
-CMD sh -c "python manage.py migrate && (python manage.py createsuperuser --noinput || true) && python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
+CMD sh -c "python manage.py makemigrations --noinput && python manage.py migrate && (python manage.py createsuperuser --noinput || true) && python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
