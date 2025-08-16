@@ -415,6 +415,15 @@ def distribution_page(request):
                 deliver_basket(
                     organization=org, beneficiary=beneficiary, product=product, period_month=period_date, user=request.user
                 )
+                log_action(
+                    request.user,
+                    request,
+                    "distribution",
+                    model_name="Distribution",
+                    object_id=str(beneficiary.id),
+                    description=f"{beneficiary.name} ← {product.name} ({period_date:%Y-%m})",
+                    organization=org,
+                )
                 messages.success(request, "Entrega registrada.")
             except Exception as exc:  # noqa: BLE001
                 messages.error(request, str(exc))
@@ -452,6 +461,15 @@ def stock_page(request):
             else:
                 try:
                     Product.objects.create(organization=org, name=name, is_bundle=is_bundle)
+                    log_action(
+                        request.user,
+                        request,
+                        "product_create",
+                        model_name="Product",
+                        object_id=name,
+                        description=f"{name} (cesta={is_bundle})",
+                        organization=org,
+                    )
                     messages.success(request, f"Produto '{name}' cadastrado com sucesso.")
                     return redirect("panel:stock_page")
                 except Exception as exc:  # noqa: BLE001
@@ -1268,7 +1286,16 @@ def event_create(request):
         except Exception:
             d = timezone.now().date()
         if name:
-            Event.objects.create(organization=org, name=name, date=d)
+            e = Event.objects.create(organization=org, name=name, date=d)
+            log_action(
+                request.user,
+                request,
+                "event_create",
+                model_name="Event",
+                object_id=str(e.id),
+                description=f"{name} {d}",
+                organization=org,
+            )
             messages.success(request, "Evento criado.")
             return redirect("panel:events_list")
     return render(request, "panel/event_create.html")
@@ -1280,9 +1307,20 @@ def event_attendance(request, pk: int):
     org = get_active_organization(request)
     event = Event.objects.get(pk=pk, organization=org)
     if request.method == "POST":
+        changed = 0
         for b in Beneficiary.objects.filter(organizations__organization=org):
             present = request.POST.get(f"b_{b.id}") == "on"
             Attendance.objects.update_or_create(event=event, beneficiary=b, defaults={"present": present})
+            changed += 1
+        log_action(
+            request.user,
+            request,
+            "event_attendance_save",
+            model_name="Event",
+            object_id=str(event.id),
+            description=f"Presenças atualizadas ({changed})",
+            organization=org,
+        )
         messages.success(request, "Presenças salvas.")
         return redirect("panel:events_list")
     attendees = Attendance.objects.filter(event=event).select_related("beneficiary")
