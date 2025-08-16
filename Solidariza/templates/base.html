@@ -81,7 +81,15 @@
     {% endif %}
 
     {% for message in messages %}
-      <div class="notification is-{{ message.tags }}">{{ message }}</div>
+      {% with t=message.tags %}
+        {% if t == 'error' %}
+          <div class="notification is-danger">{{ message }}</div>
+        {% elif t == 'debug' %}
+          <div class="notification is-dark">{{ message }}</div>
+        {% else %}
+          <div class="notification is-{{ t }}">{{ message }}</div>
+        {% endif %}
+      {% endwith %}
     {% endfor %}
 
     {% block content %}{% endblock %}
