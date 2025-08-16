@@ -62,3 +62,7 @@ coverage.xml
 # Node tooling (if any front-end tooling is added later)
 node_modules/
 
+# Local tools / binaries
+cloudflared.exe
+**/cloudflared.exe
+
