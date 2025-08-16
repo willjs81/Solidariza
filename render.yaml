@@ -19,6 +19,13 @@ services:
         value: "https://*.onrender.com"
       - key: TIME_ZONE
         value: "America/Sao_Paulo"
+      # Criação automática do superusuário no start (Dockerfile roda createsuperuser --noinput)
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: "admin"
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: "admin@solidariza.onrender.com"
+      - key: DJANGO_SUPERUSER_PASSWORD
+        generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: solidariza-db
