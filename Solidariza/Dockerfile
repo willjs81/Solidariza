@@ -19,6 +19,10 @@ COPY . /app/
 # Garantir diretórios de estáticos esperados pelo settings (silencia W004)
 # BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
 RUN mkdir -p /app/Solidariza/static /app/static
+# Garante que a imagem de fundo esteja em um app/static (coletada pelo AppDirectoriesFinder)
+RUN mkdir -p /app/panel/static/img \
+    && ( [ -f /app/static/img/login-bg.jpg ] && cp -f /app/static/img/login-bg.jpg /app/panel/static/img/login-bg.jpg || true ) \
+    && ( [ -f /app/static/img/login-bg.jpeg ] && cp -f /app/static/img/login-bg.jpeg /app/panel/static/img/login-bg.jpg || true )
 
 # Coleta de estáticos no build (evita custo em cada cold start)
 RUN python manage.py collectstatic --noinput
