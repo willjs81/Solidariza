@@ -1,8 +1,12 @@
 from datetime import date
+import os
+from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render, get_object_or_404
+from django.http import HttpResponse, Http404
+from django.conf import settings
 
 from core.models import (
     Beneficiary,
@@ -1410,5 +1414,31 @@ def event_attendance(request, pk: int):
         "panel/event_attendance.html",
         {"event": event, "beneficiaries": beneficiaries, "existing": existing},
     )
+
+
+def serve_login_background(request):
+    """Serve a imagem de fundo do login diretamente"""
+    # Tenta encontrar o arquivo de imagem
+    base_dir = Path(settings.BASE_DIR)
+    
+    # Procura por login-bg.jpg primeiro, depois .jpeg
+    possible_paths = [
+        base_dir / "static" / "img" / "login-bg.jpg",
+        base_dir / "static" / "img" / "login-bg.jpeg",
+        base_dir / "staticfiles" / "img" / "login-bg.jpg", 
+        base_dir / "staticfiles" / "img" / "login-bg.jpeg",
+        base_dir / "core" / "static" / "img" / "login-bg.jpg",
+        base_dir / "core" / "static" / "img" / "login-bg.jpeg",
+    ]
+    
+    for img_path in possible_paths:
+        if img_path.exists():
+            with open(img_path, 'rb') as f:
+                response = HttpResponse(f.read(), content_type="image/jpeg")
+                response['Cache-Control'] = 'public, max-age=31536000'  # Cache por 1 ano
+                return response
+    
+    # Se não encontrou nenhuma imagem, retorna 404
+    raise Http404("Imagem de fundo não encontrada")
 
 
