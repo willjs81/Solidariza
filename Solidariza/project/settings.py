@@ -89,7 +89,8 @@ STATICFILES_DIRS = [
     BASE_DIR / "panel" / "static",
 ]
 # Evitar erro 500 caso o manifest não esteja disponível; CompressedStaticFilesStorage é suficiente
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
