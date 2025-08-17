@@ -7,8 +7,13 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Solidariza</title>
+    <!-- Bulma principal -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <!-- Fallback Bulma (cdnjs) caso o jsdelivr falhe na rede -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css" integrity="sha512-iP6zT5q9dK0s3vXy3mT8z8lQnT3kFvQ2rjHcG8F3q5fJXn4ErnZQ7wTg5d1M+eX4XKQk2Gz1m1tqQ9m7uQK3HQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- CSS do app (com fallback de caminho) -->
     <link rel="stylesheet" href="{% static 'panel.css' %}">
+    <link rel="stylesheet" href="{% static 'panel/panel.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Fallback para Font Awesome -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -63,6 +68,8 @@
             <a class="sj-item" href="{% url 'panel:organization_page' %}">Minha Organização</a>
             {% if user.is_superuser %}
             <a class="sj-item" href="{% url 'panel:organization_list' %}">Organizações</a>
+            <a class="sj-item" href="{% url 'panel:sessions_page' %}">Sessões ativas</a>
+            <a class="sj-item" href="{% url 'panel:audit_page' %}">Auditoria</a>
             {% endif %}
             {% if user.is_superuser or user.role == 'ADMIN' %}
             <a class="sj-item" href="{% url 'panel:collaborators_page' %}">Colaboradores</a>
@@ -79,7 +86,15 @@
     {% endif %}
 
     {% for message in messages %}
-      <div class="notification is-{{ message.tags }}">{{ message }}</div>
+      {% with t=message.tags %}
+        {% if t == 'error' %}
+          <div class="notification is-danger">{{ message }}</div>
+        {% elif t == 'debug' %}
+          <div class="notification is-dark">{{ message }}</div>
+        {% else %}
+          <div class="notification is-{{ t }}">{{ message }}</div>
+        {% endif %}
+      {% endwith %}
     {% endfor %}
 
     {% block content %}{% endblock %}

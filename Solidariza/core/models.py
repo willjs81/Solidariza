@@ -10,6 +10,31 @@ from .validators import normalize_identifier, is_valid_cpf
 from django.core.exceptions import ValidationError
 
 
+class UserSession(models.Model):
+    """Sessões de usuários com last_seen real para auditoria.
+
+    Mantém vínculo com a sessão do Django via session_key e registra
+    última atividade para cálculo de "online".
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="active_sessions")
+    session_key = models.CharField(max_length=40, unique=True)
+    organization = models.ForeignKey('Organization', on_delete=models.SET_NULL, null=True, blank=True)
+    ip_address = models.CharField(max_length=64, blank=True)
+    user_agent = models.TextField(blank=True)
+    login_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user} @ {self.session_key}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "last_seen"]),
+        ]
+        verbose_name = "Sessão de usuário"
+        verbose_name_plural = "Sessões de usuários"
+
 class Organization(models.Model):
     name = models.CharField("Nome da ONG", max_length=255)
     is_active = models.BooleanField("Ativa", default=True)
@@ -329,4 +354,23 @@ def deliver_basket(*, organization: Organization, beneficiary: Beneficiary, prod
 def generate_identifier() -> str:
     return uuid.uuid4().hex
 
+
+
+# Auditoria simples de ações de usuário
+class AuditLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=64)
+    model_name = models.CharField(max_length=128, blank=True)
+    object_id = models.CharField(max_length=64, blank=True)
+    description = models.TextField(blank=True)
+    ip_address = models.CharField(max_length=64, blank=True)
+    user_agent = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "created_at"]) ]
+        ordering = ["-created_at"]
+        verbose_name = "Auditoria"
+        verbose_name_plural = "Auditorias"
 

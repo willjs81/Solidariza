@@ -7,7 +7,7 @@
     .login-hero.image-bg{
       position: relative;
       min-height: 100vh;
-      background-image: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.25)), url('{% static "img/login-bg.jpeg" %}');
+      background-image: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.25)), url('{% static "img/login-bg.jpg" %}');
       background-size: cover;
       background-position: center;
     }
@@ -23,6 +23,29 @@
       font-size: clamp(2rem, 8vw, 5rem);
       user-select: none;
     }
+    /* Toggle de senha */
+    .login-input{ position: relative; }
+    .login-input .toggle-password{
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 4px;
+    }
+    /* Mensagens globais visíveis sobre o fundo no login */
+    .unauth-wrapper .notification{
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 520px;
+      width: calc(100% - 32px);
+      z-index: 1000;
+    }
   </style>
   <div class="login-center">
     <div class="login-card">
@@ -30,6 +53,15 @@
         <h1 class="title is-4" style="margin:0 0 6px 0; line-height:1.25;">Solidariza</h1>
         <p class="subtitle is-6" style="color:#6b7280; margin:0; line-height:1.35;">Bem-vindo! Faça login para acessar o painel.</p>
       </div>
+      {% if messages %}
+      {% for message in messages %}
+        {% if 'error' in message.tags %}
+        <div class="notification is-danger is-light" style="margin-bottom:12px;">
+          {{ message }}
+        </div>
+        {% endif %}
+      {% endfor %}
+      {% endif %}
       <div class="login-icon">
         <i class="fas fa-users"></i>
       </div>
@@ -42,6 +74,9 @@
         <div class="login-input">
           <i class="fas fa-lock"></i>
           <input type="password" name="password" placeholder="Senha" required>
+          <button type="button" class="toggle-password" aria-label="Mostrar senha">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
                   <div class="login-input">
             <i class="fas fa-building"></i>
@@ -61,6 +96,24 @@
     </div>
   </div>
 </section>
+<script>
+  (function(){
+    const input = document.querySelector('.login-form input[name="password"]');
+    const btn = document.querySelector('.login-form .toggle-password');
+    if (input && btn) {
+      btn.addEventListener('click', function(){
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        const icon = btn.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye', !show);
+          icon.classList.toggle('fa-eye-slash', show);
+        }
+        btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+      });
+    }
+  })();
+</script>
 {% endblock %}
 
 
