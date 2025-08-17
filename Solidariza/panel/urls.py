@@ -34,8 +34,6 @@ urlpatterns = [
     path("sessions/", views.sessions_page, name="sessions_page"),
     path("sessions/terminate/", views.session_terminate, name="session_terminate"),
     path("audit/", views.audit_page, name="audit_page"),
-    # Serve imagem de fundo do login
-    path("static/img/login-bg.jpeg", views.serve_login_background, name="login_background"),
 ]
 
 
