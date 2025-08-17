@@ -1418,8 +1418,12 @@ def event_attendance(request, pk: int):
 
 def serve_login_background(request):
     """Serve a imagem de fundo do login diretamente"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Tenta encontrar o arquivo de imagem
     base_dir = Path(settings.BASE_DIR)
+    logger.error(f"BASE_DIR: {base_dir}")
     
     # Procura por login-bg.jpg primeiro, depois .jpeg
     possible_paths = [
@@ -1429,14 +1433,29 @@ def serve_login_background(request):
         base_dir / "staticfiles" / "img" / "login-bg.jpeg",
         base_dir / "core" / "static" / "img" / "login-bg.jpg",
         base_dir / "core" / "static" / "img" / "login-bg.jpeg",
+        # Caminhos adicionais no container
+        Path("/app/static/img/login-bg.jpg"),
+        Path("/app/static/img/login-bg.jpeg"),
+        Path("/app/staticfiles/img/login-bg.jpg"),
+        Path("/app/staticfiles/img/login-bg.jpeg"),
     ]
     
     for img_path in possible_paths:
+        logger.error(f"Testando: {img_path} - Existe: {img_path.exists()}")
         if img_path.exists():
+            logger.error(f"✅ Encontrado: {img_path}")
             with open(img_path, 'rb') as f:
                 response = HttpResponse(f.read(), content_type="image/jpeg")
                 response['Cache-Control'] = 'public, max-age=31536000'  # Cache por 1 ano
                 return response
+    
+    # Debug: Lista todos os arquivos no diretório
+    try:
+        static_dir = Path("/app/static")
+        if static_dir.exists():
+            logger.error(f"Arquivos em /app/static: {list(static_dir.rglob('*login*'))}")
+    except Exception as e:
+        logger.error(f"Erro listando /app/static: {e}")
     
     # Se não encontrou nenhuma imagem, retorna 404
     raise Http404("Imagem de fundo não encontrada")
