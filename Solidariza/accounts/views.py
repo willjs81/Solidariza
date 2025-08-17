@@ -15,6 +15,11 @@ class CustomLoginView(LoginView):
         context['organizations'] = Organization.objects.filter(is_active=True).order_by('name')
         return context
     
+    def form_invalid(self, form):
+        # Exibe mensagem clara quando credenciais estiverem incorretas
+        messages.error(self.request, 'Credenciais inválidas. Verifique usuário e senha.')
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         """
         Processa o login com seleção de organização.

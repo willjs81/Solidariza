@@ -21,6 +21,9 @@ from core.middleware import get_active_organization
 from accounts.models import User
 from django.utils import timezone
 from django.http import HttpResponseBadRequest
+from django.contrib.sessions.models import Session
+from core.models import UserSession
+from core.audit import log_action
 
 
 # --- Helpers de permissão ----------------------------------------------------
@@ -123,11 +126,13 @@ def set_active_organization(request):
         if not org_id or org_id == "":
             request.session.pop("active_organization_id", None)
             messages.success(request, "Visualizando toda a rede.")
+            log_action(request.user, request, "set_active_org", description="Toda a Rede")
             return redirect("panel:dashboard")
         try:
             org = Organization.objects.get(id=org_id)
             request.session["active_organization_id"] = org.id
             messages.success(request, f"Organização ativa: {org.name}")
+            log_action(request.user, request, "set_active_org", model_name="Organization", object_id=org.id, description=org.name, organization=org)
         except Organization.DoesNotExist:
             messages.error(request, "Organização não encontrada.")
         return redirect("panel:dashboard")
@@ -135,6 +140,7 @@ def set_active_organization(request):
     # Usuário não-superuser: só pode setar sua própria org
     if hasattr(request.user, "organization") and request.user.organization:
         request.session["active_organization_id"] = request.user.organization.id
+        log_action(request.user, request, "set_active_org", model_name="Organization", object_id=request.user.organization.id, description=request.user.organization.name, organization=request.user.organization)
         return redirect("panel:dashboard")
 
     messages.error(request, "Sem organização vinculada ao usuário.")
@@ -312,10 +318,12 @@ def beneficiary_create(request):
                 org = get_active_organization(request)
                 if org:
                     OrganizationBeneficiary.objects.get_or_create(organization=org, beneficiary=b)
+                    log_action(request.user, request, "beneficiary_create", model_name="Beneficiary", object_id=b.id, description=b.name, organization=org)
                 else:
                     # Se não há ONG ativa, tenta usar a organização do usuário logado (se houver)
                     if hasattr(request.user, 'organization') and request.user.organization:
                         OrganizationBeneficiary.objects.get_or_create(organization=request.user.organization, beneficiary=b)
+                        log_action(request.user, request, "beneficiary_create", model_name="Beneficiary", object_id=b.id, description=b.name, organization=request.user.organization)
             except Exception as exc:  # noqa: BLE001
                 messages.error(request, str(exc))
                 org = get_active_organization(request)
@@ -396,6 +404,9 @@ def beneficiary_edit(request, pk: int):
 def distribution_page(request):
     org = get_active_organization(request)
     if request.method == "POST":
+        if org is None:
+            messages.error(request, "Na visão 'Toda a Rede' as entregas são somente leitura. Selecione uma organização para registrar entregas.")
+            return redirect("panel:distribution_page")
         beneficiary_id = request.POST.get("beneficiary_id")
         product_id = request.POST.get("product_id")
         period = request.POST.get("period_month")
@@ -406,6 +417,15 @@ def distribution_page(request):
             try:
                 deliver_basket(
                     organization=org, beneficiary=beneficiary, product=product, period_month=period_date, user=request.user
+                )
+                log_action(
+                    request.user,
+                    request,
+                    "distribution",
+                    model_name="Distribution",
+                    object_id=str(beneficiary.id),
+                    description=f"{beneficiary.name} ← {product.name} ({period_date:%Y-%m})",
+                    organization=org,
                 )
                 messages.success(request, "Entrega registrada.")
             except Exception as exc:  # noqa: BLE001
@@ -444,6 +464,15 @@ def stock_page(request):
             else:
                 try:
                     Product.objects.create(organization=org, name=name, is_bundle=is_bundle)
+                    log_action(
+                        request.user,
+                        request,
+                        "product_create",
+                        model_name="Product",
+                        object_id=name,
+                        description=f"{name} (cesta={is_bundle})",
+                        organization=org,
+                    )
                     messages.success(request, f"Produto '{name}' cadastrado com sucesso.")
                     return redirect("panel:stock_page")
                 except Exception as exc:  # noqa: BLE001
@@ -463,6 +492,7 @@ def stock_page(request):
                     StockMovement.objects.create(
                         organization=org, product=product, kind=kind, quantity=quantity, reason=reason, created_by=request.user
                     )
+                    log_action(request.user, request, "stock_movement", model_name="StockMovement", object_id=product.id, description=f"{kind} {quantity} {product.name}", organization=org)
                     messages.success(request, "Movimentação registrada com sucesso.")
                     return redirect("panel:stock_page")
             except Exception as exc:  # noqa: BLE001
@@ -594,6 +624,73 @@ def network_distributions(request):
 
 
 @login_required
+def sessions_page(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:dashboard")
+    from datetime import timedelta
+    now = timezone.now()
+    rng = (request.GET.get("range") or "5").strip()
+    valid = {"5": 5, "15": 15, "30": 30}
+    if rng == "all":
+        sessions = UserSession.objects.select_related("user", "organization").order_by("-last_seen")
+    else:
+        minutes = valid.get(rng, 5)
+        online_threshold = now - timedelta(minutes=minutes)
+        sessions = (
+            UserSession.objects.select_related("user", "organization")
+            .filter(last_seen__gte=online_threshold, is_active=True)
+            .order_by("-last_seen")
+        )
+    return render(request, "panel/sessions.html", {"sessions": sessions, "now": now, "range": rng})
+
+
+@login_required
+def session_terminate(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:sessions_page")
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método inválido")
+    key = request.POST.get("session_key")
+    if not key:
+        messages.error(request, "Chave de sessão não informada.")
+        return redirect("panel:sessions_page")
+    # Encerrar: marca como inativa e apaga a sessão do Django se existir
+    UserSession.objects.filter(session_key=key).update(is_active=False)
+    try:
+        Session.objects.filter(session_key=key).delete()
+    except Exception:
+        pass
+    log_action(request.user, request, "session_terminate", model_name="UserSession", object_id=key, description="Encerrar sessão")
+    messages.success(request, "Sessão encerrada.")
+    return redirect("panel:sessions_page")
+
+
+@login_required
+def audit_page(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Acesso negado.")
+        return redirect("panel:dashboard")
+    from core.models import AuditLog, Organization
+    qs = AuditLog.objects.select_related("user", "organization").order_by("-created_at")
+    org_id = request.GET.get("organization")
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+    if org_id:
+        try:
+            qs = qs.filter(organization_id=int(org_id))
+        except Exception:
+            pass
+    if start:
+        qs = qs.filter(created_at__date__gte=start)
+    if end:
+        qs = qs.filter(created_at__date__lte=end)
+    logs = qs[:500]
+    orgs = Organization.objects.all().order_by("name")
+    return render(request, "panel/audit.html", {"logs": logs, "organizations": orgs, "organization": org_id or "", "start": start or "", "end": end or ""})
+
+@login_required
 def organization_page(request):
     """Página de gestão da organização com colaboradores e assistidos."""
     org = get_active_organization(request)
@@ -677,7 +774,16 @@ def organization_create(request):
     if request.method == "POST":
         name = request.POST.get("name")
         if name:
-            Organization.objects.create(name=name)
+            o = Organization.objects.create(name=name)
+            log_action(
+                request.user,
+                request,
+                "organization_create",
+                model_name="Organization",
+                object_id=o.id,
+                description=o.name,
+                organization=o,
+            )
             messages.success(request, f"Organização '{name}' criada com sucesso.")
             return redirect("panel:organization_list")
         else:
@@ -732,6 +838,15 @@ def organization_delete(request, pk: int):
                 # Vínculos organização/beneficiário
                 from core.models import OrganizationBeneficiary
                 OrganizationBeneficiary.objects.filter(organization=org).delete()
+                # Registrar auditoria antes da exclusão
+                log_action(
+                    request.user,
+                    request,
+                    "organization_delete",
+                    model_name="Organization",
+                    object_id=org.id,
+                    description=name,
+                )
                 # Por fim, a própria organização
                 org.delete()
             messages.success(request, f"Organização '{name}' excluída com sucesso.")
@@ -752,6 +867,15 @@ def organization_toggle_active(request, pk: int):
     org.is_active = not org.is_active
     org.save(update_fields=["is_active"])
     status = "ativada" if org.is_active else "desativada"
+    log_action(
+        request.user,
+        request,
+        "organization_toggle_active",
+        model_name="Organization",
+        object_id=org.id,
+        description=f"{org.name} {status}",
+        organization=org,
+    )
     messages.success(request, f"Organização '{org.name}' {status}.")
     return redirect("panel:organization_detail", pk=org.pk)
 
@@ -781,6 +905,15 @@ def collaborator_create(request):
             org = get_active_organization(request)
         if username and password and role:
             u = User.objects.create_user(username=username, password=password, email=email, organization=org, role=role)
+            log_action(
+                request.user,
+                request,
+                "collaborator_create",
+                model_name="User",
+                object_id=u.id,
+                description=f"{u.username} ({role})",
+                organization=org,
+            )
             messages.success(request, "Colaborador criado.")
             return redirect("panel:collaborator_detail", pk=u.pk)
         messages.error(request, "Preencha os campos obrigatórios.")
@@ -815,10 +948,45 @@ def collaborator_edit(request, pk: int):
         if role:
             u.role = role
         u.save()
+        log_action(
+            request.user,
+            request,
+            "collaborator_edit",
+            model_name="User",
+            object_id=u.id,
+            description=f"{u.username} -> org={u.organization_id} role={u.role}",
+            organization=u.organization,
+        )
         messages.success(request, "Colaborador atualizado.")
         return redirect("panel:collaborator_detail", pk=u.pk)
     orgs = Organization.objects.all().order_by("name")
     return render(request, "panel/collaborator_edit.html", {"user_obj": u, "orgs": orgs})
+
+
+@login_required
+@require_admin
+def collaborator_delete(request, pk: int):
+    if not (request.user.is_admin() or request.user.is_superuser):
+        messages.error(request, "Apenas administradores podem excluir colaboradores.")
+        return redirect("panel:collaborators_page")
+    u = get_object_or_404(User, pk=pk)
+    if request.method == "POST":
+        username = u.username
+        org = u.organization
+        uid = u.id
+        u.delete()
+        log_action(
+            request.user,
+            request,
+            "collaborator_delete",
+            model_name="User",
+            object_id=uid,
+            description=username,
+            organization=org,
+        )
+        messages.success(request, "Colaborador removido.")
+        return redirect("panel:collaborators_page")
+    return render(request, "panel/collaborator_delete_confirm.html", {"user_obj": u})
 
 
 @login_required
@@ -1192,9 +1360,20 @@ def event_create(request):
         except Exception:
             d = timezone.now().date()
         if name:
-            Event.objects.create(organization=org, name=name, date=d)
+            e = Event.objects.create(organization=org, name=name, date=d)
+            log_action(
+                request.user,
+                request,
+                "event_create",
+                model_name="Event",
+                object_id=str(e.id),
+                description=f"{name} {d}",
+                organization=org,
+            )
             messages.success(request, "Evento criado.")
             return redirect("panel:events_list")
+        else:
+            messages.error(request, "Nome do evento é obrigatório.")
     return render(request, "panel/event_create.html")
 
 
@@ -1204,9 +1383,20 @@ def event_attendance(request, pk: int):
     org = get_active_organization(request)
     event = Event.objects.get(pk=pk, organization=org)
     if request.method == "POST":
+        changed = 0
         for b in Beneficiary.objects.filter(organizations__organization=org):
             present = request.POST.get(f"b_{b.id}") == "on"
             Attendance.objects.update_or_create(event=event, beneficiary=b, defaults={"present": present})
+            changed += 1
+        log_action(
+            request.user,
+            request,
+            "event_attendance_save",
+            model_name="Event",
+            object_id=str(event.id),
+            description=f"Presenças atualizadas ({changed})",
+            organization=org,
+        )
         messages.success(request, "Presenças salvas.")
         return redirect("panel:events_list")
     attendees = Attendance.objects.filter(event=event).select_related("beneficiary")

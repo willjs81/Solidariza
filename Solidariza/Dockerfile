@@ -10,12 +10,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# O requirements.txt está dentro da pasta do projeto Django
-COPY Solidariza/requirements.txt /app/requirements.txt
+# O requirements.txt está na raiz do contexto de build (pasta Solidariza)
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app/
 
-# Collect static in prod via compose command
+# Garantir diretórios de estáticos esperados pelo settings (silencia W004)
+# BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
+RUN mkdir -p /app/Solidariza/static /app/static
 
+# Coleta de estáticos no build (evita custo em cada cold start)
+RUN python manage.py collectstatic --noinput
 
+# Comando padrão para ambientes como Render/Heroku-like
+CMD sh -c "python manage.py migrate && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
