@@ -36,6 +36,8 @@ media/
 
 # Collected static files (keep source in app/static)
 staticfiles/
+# Mantenha fontes de estáticos do projeto
+!Solidariza/static/
 
 # Local settings and dotenvs
 .env
