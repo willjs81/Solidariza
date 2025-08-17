@@ -21,10 +21,10 @@ COPY . /app/
 RUN mkdir -p /app/Solidariza/static /app/static
 # Garante que a imagem de fundo esteja em um app/static (coletada pelo AppDirectoriesFinder)
 RUN mkdir -p /app/panel/static/img \
-    && ( [ -f /app/static/img/login-bg.jpeg ] && cp -f /app/static/img/login-bg.jpeg /app/panel/static/img/login-bg.jpeg || true )
+    && ( [ -f /app/Solidariza/static/img/login-bg.jpeg ] && cp -f /app/Solidariza/static/img/login-bg.jpeg /app/panel/static/img/login-bg.jpeg || true )
 
 # Coleta de estáticos no build (evita custo em cada cold start)
-RUN python manage.py collectstatic --noinput
+RUN cd /app/Solidariza && python manage.py collectstatic --noinput
 
 # Comando padrão para ambientes como Render/Heroku-like
-CMD sh -c "(python manage.py migrate || (python manage.py migrate core 0009 --fake && python manage.py migrate core 0010 --fake && python manage.py migrate)) && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
+CMD sh -c "cd /app/Solidariza && (python manage.py migrate || (python manage.py migrate core 0009 --fake && python manage.py migrate core 0010 --fake && python manage.py migrate)) && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
