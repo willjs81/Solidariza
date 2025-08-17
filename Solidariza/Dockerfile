@@ -19,21 +19,18 @@ COPY . /app/
 # Garantir diretórios de estáticos esperados pelo settings (silencia W004)
 # BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
 RUN mkdir -p /app/Solidariza/static /app/static
-# Copia imagem para o diretório de estáticos que será coletado
-RUN echo "=== Procurando login-bg.* em todo o /app ===" \
-    && find /app -name "login-bg.*" -type f \
-    && echo "=== Estrutura de diretórios ===" \
-    && ls -la /app/ \
-    && mkdir -p /app/accounts/static/img \
-    && ARQUIVO_ENCONTRADO=$(find /app -name "login-bg.*" -type f | head -1) \
-    && echo "Arquivo encontrado: $ARQUIVO_ENCONTRADO" \
-    && if [ -n "$ARQUIVO_ENCONTRADO" ]; then cp -f "$ARQUIVO_ENCONTRADO" /app/accounts/static/img/login-bg.jpeg && echo "Imagem copiada!"; else echo "ERRO: Arquivo não encontrado!"; fi
+# Copia imagem diretamente para staticfiles (estratégia pós-collectstatic)
+RUN echo "=== Preparando diretório final ===" \
+    && mkdir -p /app/staticfiles/img
 
 # Coleta de estáticos no build (evita custo em cada cold start)
 RUN python manage.py collectstatic --noinput --verbosity=2 \
-    && echo "=== Verificando arquivos coletados ===" \
-    && find /app/staticfiles -name "login-bg.*" -type f \
-    && ls -la /app/staticfiles/img/ || echo "Diretório img não encontrado em staticfiles"
+    && echo "=== Copiando imagem personalizada pós-collectstatic ===" \
+    && find /app -name "login-bg.*" -type f \
+    && ARQUIVO_ENCONTRADO=$(find /app -name "login-bg.*" -type f | head -1) \
+    && if [ -n "$ARQUIVO_ENCONTRADO" ]; then cp -f "$ARQUIVO_ENCONTRADO" /app/staticfiles/img/login-bg.jpeg && echo "Imagem personalizada copiada para staticfiles!"; else echo "Imagem não encontrada"; fi \
+    && echo "=== Verificando resultado final ===" \
+    && ls -la /app/staticfiles/img/ || echo "Diretório img não encontrado"
 
 # Comando padrão para ambientes como Render/Heroku-like
 CMD sh -c "(python manage.py migrate || (python manage.py migrate core 0009 --fake && python manage.py migrate core 0010 --fake && python manage.py migrate)) && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
