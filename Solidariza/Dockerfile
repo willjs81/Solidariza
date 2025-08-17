@@ -24,4 +24,4 @@ RUN mkdir -p /app/Solidariza/static /app/static
 RUN python manage.py collectstatic --noinput
 
 # Comando padrão para ambientes como Render/Heroku-like
-CMD sh -c "python manage.py migrate && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
+CMD sh -c "(python manage.py migrate || (python manage.py migrate core 0009 --fake && python manage.py migrate core 0010 --fake && python manage.py migrate)) && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
