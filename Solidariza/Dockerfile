@@ -27,8 +27,14 @@ RUN echo "=== Preparando diretório final ===" \
 RUN python manage.py collectstatic --noinput --verbosity=2 \
     && echo "=== Copiando imagem personalizada pós-collectstatic ===" \
     && find /app -name "login-bg.*" -type f \
-    && ARQUIVO_ENCONTRADO=$(find /app -name "login-bg.*" -type f | head -1) \
-    && if [ -n "$ARQUIVO_ENCONTRADO" ]; then cp -f "$ARQUIVO_ENCONTRADO" /app/staticfiles/img/login-bg.jpeg && echo "Imagem personalizada copiada para staticfiles!"; else echo "Imagem não encontrada"; fi \
+    && echo "=== Priorizando .jpg, depois .jpeg ===" \
+    && if [ -f "/app/static/img/login-bg.jpg" ]; then \
+           cp -f /app/static/img/login-bg.jpg /app/staticfiles/img/login-bg.jpeg && echo "✅ login-bg.jpg copiado como login-bg.jpeg"; \
+       elif [ -f "/app/static/img/login-bg.jpeg" ]; then \
+           cp -f /app/static/img/login-bg.jpeg /app/staticfiles/img/login-bg.jpeg && echo "✅ login-bg.jpeg copiado"; \
+       else \
+           echo "❌ Nenhum arquivo login-bg encontrado"; \
+       fi \
     && echo "=== Verificando resultado final ===" \
     && ls -la /app/staticfiles/img/ || echo "Diretório img não encontrado"
 
