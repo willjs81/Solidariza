@@ -20,10 +20,14 @@ COPY . /app/
 # BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
 RUN mkdir -p /app/Solidariza/static /app/static
 # Copia imagem para o diretório de estáticos que será coletado
-RUN find /app -name "login-bg.*" -type f \
+RUN echo "=== Procurando login-bg.* em todo o /app ===" \
+    && find /app -name "login-bg.*" -type f \
+    && echo "=== Estrutura de diretórios ===" \
+    && ls -la /app/ \
     && mkdir -p /app/accounts/static/img \
-    && cp -f /app/static/img/login-bg.jpeg /app/accounts/static/img/login-bg.jpeg \
-    && echo "Imagem copiada para /app/accounts/static/img/"
+    && ARQUIVO_ENCONTRADO=$(find /app -name "login-bg.*" -type f | head -1) \
+    && echo "Arquivo encontrado: $ARQUIVO_ENCONTRADO" \
+    && if [ -n "$ARQUIVO_ENCONTRADO" ]; then cp -f "$ARQUIVO_ENCONTRADO" /app/accounts/static/img/login-bg.jpeg && echo "Imagem copiada!"; else echo "ERRO: Arquivo não encontrado!"; fi
 
 # Coleta de estáticos no build (evita custo em cada cold start)
 RUN python manage.py collectstatic --noinput --verbosity=2 \
