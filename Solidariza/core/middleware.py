@@ -2,6 +2,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.urls import reverse
 from .models import Organization, UserSession
+from . import get_client_ip
 from django.utils import timezone
 
 
@@ -80,7 +81,7 @@ class OrganizationAccessMiddleware:
                     defaults={
                         'user': request.user,
                         'organization': org,
-                        'ip_address': request.META.get('REMOTE_ADDR', ''),
+                        'ip_address': get_client_ip(request),
                         'user_agent': request.META.get('HTTP_USER_AGENT', ''),
                         'last_seen': timezone.now(),
                         'is_active': True,
