@@ -102,6 +102,10 @@ git push -u origin feature/minha-feature
 python Solidariza/manage.py createsuperuser
 ```
 
+Nota sobre estáticos em produção
+- Defina `DJANGO_DEBUG=False` para servir corretamente os arquivos estáticos.
+- O CSS principal é servido em `/static/panel.css`.
+
 
 ### Passo a passo (prod-like no Lightsail)
 

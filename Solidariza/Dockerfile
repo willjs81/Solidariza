@@ -16,12 +16,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app/
 
-# Garantir diretórios de estáticos esperados pelo settings (silencia W004)
-# BASE_DIR aponta para /app/Solidariza, então criamos ambos por segurança
-RUN mkdir -p /app/Solidariza/static /app/static
-
-# Coleta de estáticos no build (evita custo em cada cold start)
-RUN python manage.py collectstatic --noinput
+# Garantir diretórios de estáticos esperados pelo settings
+RUN mkdir -p /app/static /app/staticfiles /app/panel/static
 
 # Comando padrão para ambientes como Render/Heroku-like
-CMD sh -c "python manage.py migrate && (python manage.py createsuperuser --noinput || true) && gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3"
+CMD gunicorn project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120

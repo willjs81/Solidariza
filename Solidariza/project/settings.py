@@ -91,6 +91,7 @@ STATICFILES_DIRS = [
 # Evitar erro 500 caso o manifest não esteja disponível; CompressedStaticFilesStorage é suficiente
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
